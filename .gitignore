@@ -1,0 +1,17 @@
+
+# File patterns which are ignored by Git
+.idea
+
+# Auto generated Python files
+*.pyc
+
+# coverage results
+.coverage
+htmlcov/
+
+# VIM temporary files
+*.swp
+*.swo
+
+# backup files from merge conflicts
+*.orig
