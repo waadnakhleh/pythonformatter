@@ -7,5 +7,5 @@ def main():
     _rewrite.rewrite(file_name)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
