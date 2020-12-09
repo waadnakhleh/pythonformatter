@@ -2,6 +2,15 @@ import ast
 
 
 class Rewrite(ast.NodeVisitor):
+    def __init__(self):
+        self.indentation = 0
+
+    def __enter__(self):
+        self.indentation += 4
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.indentation -= 4
+
     def visit_Import(self, node):
         imports_list = node.names
         for name in imports_list:
@@ -12,7 +21,7 @@ class Rewrite(ast.NodeVisitor):
         file.write(f"from {node.module} import ")
         for i, name in enumerate(import_list):
             file.write(f"{name.name}")
-            if i+1 != len(import_list):
+            if i + 1 != len(import_list):
                 file.write(", ")
             else:
                 file.write("\n")
