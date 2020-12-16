@@ -38,3 +38,8 @@ def test_unaryop():
 def test_name():
     input_file, output_file = "test_name/input.py", "test_name/output.py"
     make_test(input_file, output_file)
+
+
+def test_boolop():
+    input_file, output_file = "test_boolop/input.py", "test_boolop/output.py"
+    make_test(input_file, output_file)
