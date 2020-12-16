@@ -33,3 +33,8 @@ def test_constant():
 def test_unaryop():
     input_file, output_file = "test_unaryop/input.py", "test_unaryop/output.py"
     make_test(input_file, output_file)
+
+
+def test_name():
+    input_file, output_file = "test_name/input.py", "test_name/output.py"
+    make_test(input_file, output_file)
