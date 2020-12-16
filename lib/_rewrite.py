@@ -112,6 +112,9 @@ class Rewrite(ast.NodeVisitor):
         if isinstance(node.value, str):
             self.print('"')
 
+    def visit_Name(self, node):
+        self.print(node.id)
+
 
 def rewrite(file_name: str):
     global file
