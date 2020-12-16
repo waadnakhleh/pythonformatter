@@ -115,6 +115,13 @@ class Rewrite(ast.NodeVisitor):
     def visit_Name(self, node):
         self.print(node.id)
 
+    def visit_BoolOp(self, node):
+        op = "and" if isinstance(node.op, _ast.And) else "or"
+        for i, value in enumerate(node.values):
+            self.visit(value, new_line=False)
+            if i + 1 != len(node.values):
+                self.print(f" {op} ")
+
 
 def rewrite(file_name: str):
     global file
