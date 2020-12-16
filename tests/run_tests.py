@@ -22,3 +22,14 @@ def test_import():
 def test_from_import():
     input_file, output_file = "test_from_import/input.py", "test_from_import/output.py"
     make_test(input_file, output_file)
+
+
+def test_constant():
+    # TODO: fix bug, binary and hex values change to decimal.
+    input_file, output_file = "test_constant/input.py", "test_constant/output.py"
+    make_test(input_file, output_file)
+
+
+def test_unaryop():
+    input_file, output_file = "test_unaryop/input.py", "test_unaryop/output.py"
+    make_test(input_file, output_file)
