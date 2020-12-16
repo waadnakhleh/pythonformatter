@@ -43,3 +43,8 @@ def test_name():
 def test_boolop():
     input_file, output_file = "test_boolop/input.py", "test_boolop/output.py"
     make_test(input_file, output_file)
+
+
+def test_list():
+    input_file, output_file = "test_list/input.py", "test_list/output.py"
+    make_test(input_file, output_file)
