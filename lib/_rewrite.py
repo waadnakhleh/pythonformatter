@@ -122,6 +122,15 @@ class Rewrite(ast.NodeVisitor):
             if i + 1 != len(node.values):
                 self.print(f" {op} ")
 
+    def visit_List(self, node):
+        iterable_size = len(node.elts)
+        self.print("[")
+        for i, item in enumerate(node.elts):
+            self.visit(item, new_line=False)
+            if i + 1 != iterable_size:
+                self.print(", ")
+        self.print("]")
+
 
 def rewrite(file_name: str):
     global file
