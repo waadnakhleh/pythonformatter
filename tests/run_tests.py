@@ -73,3 +73,8 @@ def test_binop():
 def test_namedexpr():
     input_file, output_file = "test_namedexpr/input.py", "test_namedexpr/output.py"
     make_test(input_file, output_file)
+
+
+def test_compare():
+    input_file, output_file = "test_compare/input.py", "test_compare/output.py"
+    make_test(input_file, output_file)
