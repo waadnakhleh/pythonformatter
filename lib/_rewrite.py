@@ -139,6 +139,9 @@ class Rewrite(ast.NodeVisitor):
         self.print(node.elts, _is_iterable=True, _use_visit=True)
         self.print(")")
 
+    def visit_Pass(self, node):
+        self.print("pass")
+
 
 def rewrite(file_name: str):
     global file

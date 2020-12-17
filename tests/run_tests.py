@@ -53,3 +53,8 @@ def test_list():
 def test_tuple():
     input_file, output_file = "test_tuple/input.py", "test_tuple/output.py"
     make_test(input_file, output_file)
+
+
+def test_pass():
+    input_file, output_file = "test_pass/input.py", "test_pass/output.py"
+    make_test(input_file, output_file)
