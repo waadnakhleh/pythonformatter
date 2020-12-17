@@ -1,5 +1,6 @@
-import _rewrite
 import filecmp
+import pytest
+import _rewrite
 
 
 def confirm(output):
@@ -12,6 +13,11 @@ def make_test(input_file, output_file):
     _rewrite.rewrite(input_file)
     confirm(output_file)
     _rewrite.file = open("modified_file.py", "a")
+
+
+def test_syntax_error():
+    with pytest.raises(SyntaxError):
+        _rewrite.rewrite("syntax_error/file.py")
 
 
 def test_import():
