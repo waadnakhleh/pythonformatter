@@ -112,6 +112,27 @@ class Rewrite(ast.NodeVisitor):
             self.print(" ")
         self.visit(node.operand, False)
 
+    def visit_BinOp(self, node):
+        # operator = Add | Sub | Mult | MatMult | Div | Mod | Pow | LShift
+        # | RShift | BitOr | BitXor | BitAnd | FloorDiv
+        ops = {_ast.Add: "+",
+               _ast.Sub: "-",
+               _ast.Mult: "*",
+               _ast.MatMult: "@",
+               _ast.Div: "/",
+               _ast.Mod: "%",
+               _ast.Pow: "**",
+               _ast.LShift: "<<",
+               _ast.RShift: ">>",
+               _ast.BitOr: "|",
+               _ast.BitXor: "^",
+               _ast.BitAnd: "&",
+               _ast.FloorDiv: "//",
+               }
+        self.visit(node.left, False)
+        self.print(f" {ops[type(node.op)]} ")
+        self.visit(node.right, False)
+
     def visit_Constant(self, node):
         if isinstance(node.value, str):
             self.print('"')
