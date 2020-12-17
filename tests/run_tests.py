@@ -63,3 +63,8 @@ def test_pass():
 def test_assignment():
     input_file, output_file = "test_assignment/input.py", "test_assignment/output.py"
     make_test(input_file, output_file)
+
+
+def test_binop():
+    input_file, output_file = "test_binop/input.py", "test_binop/output.py"
+    make_test(input_file, output_file)
