@@ -48,3 +48,8 @@ def test_boolop():
 def test_list():
     input_file, output_file = "test_list/input.py", "test_list/output.py"
     make_test(input_file, output_file)
+
+
+def test_tuple():
+    input_file, output_file = "test_tuple/input.py", "test_tuple/output.py"
+    make_test(input_file, output_file)

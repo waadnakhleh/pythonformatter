@@ -73,17 +73,24 @@ class Rewrite(ast.NodeVisitor):
             to_print += "\n"
         return to_print
 
-    def print(self, value, *, _new_line=False, _is_iterable=False, _special_attribute=None):
+    def print(self, value, *, _new_line=False, _is_iterable=False, _special_attribute=None, _use_visit=False):
         """
         outputs required value to target file.
         :param value: Value required to print.
         :param _new_line: End line with a \n.
         :param _is_iterable: Is the value iterable (list, tuple, etc...).
         :param _special_attribute: Special attribute that we need to print instead of value.
+        :param _use_visit: should item be printed directly or use visit_class() method.
         :return: None.
         """
-        to_print = self._prepare_line(value, _new_line, _is_iterable, _special_attribute)
-        file.write(to_print)
+        if not _use_visit:
+            to_print = self._prepare_line(value, _new_line, _is_iterable, _special_attribute)
+            file.write(to_print)
+        elif _is_iterable and _use_visit:
+            for i, item in enumerate(value):
+                self.visit(item, new_line=False)
+                if i + 1 != len(value):
+                    self.print(", ")
 
     def new_line(self):
         self.print("", _new_line=True)
@@ -123,13 +130,14 @@ class Rewrite(ast.NodeVisitor):
                 self.print(f" {op} ")
 
     def visit_List(self, node):
-        iterable_size = len(node.elts)
         self.print("[")
-        for i, item in enumerate(node.elts):
-            self.visit(item, new_line=False)
-            if i + 1 != iterable_size:
-                self.print(", ")
+        self.print(node.elts, _is_iterable=True, _use_visit=True)
         self.print("]")
+
+    def visit_Tuple(self, node):
+        self.print("(")
+        self.print(node.elts, _is_iterable=True, _use_visit=True)
+        self.print(")")
 
 
 def rewrite(file_name: str):
