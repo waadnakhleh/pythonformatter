@@ -176,6 +176,27 @@ class Rewrite(ast.NodeVisitor):
             self.print(" = ")
         self.visit(node.value, False)
 
+    def visit_Compare(self, node):
+        ops = {
+            _ast.Eq: "==",
+            _ast.NotEq: "!=",
+            _ast.Lt: "<",
+            _ast.LtE: "<=",
+            _ast.Gt: ">",
+            _ast.GtE: ">=",
+            _ast.Is: "is",
+            _ast.IsNot: "is not",
+            _ast.In: "in",
+            _ast.NotIn: "not in",
+            }
+        self.visit(node.left, new_line=False)
+        self.print(" ")
+        for i, (op, comp) in enumerate(zip(node.ops, node.comparators)):
+            self.print(f"{ops[type(op)]} ")
+            self.visit(comp, new_line=False)
+            if i + 1 != len(node.ops):
+                self.print(" ")
+
 
 def rewrite(file_name: str):
     global file
