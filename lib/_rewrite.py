@@ -142,6 +142,12 @@ class Rewrite(ast.NodeVisitor):
     def visit_Pass(self, node):
         self.print("pass")
 
+    def visit_Assign(self, node):
+        for target in node.targets:
+            self.visit(target, False)
+            self.print(" = ")
+        self.visit(node.value, False)
+
 
 def rewrite(file_name: str):
     global file
