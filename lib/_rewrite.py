@@ -163,6 +163,13 @@ class Rewrite(ast.NodeVisitor):
     def visit_Pass(self, node):
         self.print("pass")
 
+    def visit_NamedExpr(self, node):
+        self.print("(")
+        self.visit(node.target, new_line=False)
+        self.print(f" := ")
+        self.visit(node.value, new_line=False)
+        self.print(")")
+
     def visit_Assign(self, node):
         for target in node.targets:
             self.visit(target, False)
