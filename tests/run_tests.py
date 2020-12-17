@@ -84,3 +84,8 @@ def test_namedexpr():
 def test_compare():
     input_file, output_file = "test_compare/input.py", "test_compare/output.py"
     make_test(input_file, output_file)
+
+
+def test_assert():
+    input_file, output_file = "test_assert/input.py", "test_assert/output.py"
+    make_test(input_file, output_file)
