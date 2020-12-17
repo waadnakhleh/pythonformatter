@@ -197,6 +197,12 @@ class Rewrite(ast.NodeVisitor):
             if i + 1 != len(node.ops):
                 self.print(" ")
 
+    def visit_Assert(self, node):
+        self.print("assert ")
+        self.visit(node.test, new_line=False)
+        self.print(", ")
+        self.visit(node.msg, new_line=False)
+
 
 def rewrite(file_name: str):
     global file
