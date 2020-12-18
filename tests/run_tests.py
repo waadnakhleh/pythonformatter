@@ -114,3 +114,8 @@ def test_continue():
 def test_return():
     input_file, output_file = "test_return/input.py", "test_return/output.py"
     make_test(input_file, output_file)
+
+
+def test_call():
+    input_file, output_file = "test_call/input.py", "test_call/output.py"
+    make_test(input_file, output_file)
