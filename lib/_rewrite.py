@@ -18,6 +18,7 @@ def iter_fields(node):
 class Rewrite(ast.NodeVisitor):
     def __init__(self):
         self.indentation = 0
+        self.in_new_line = True
 
     def __enter__(self):
         self.indentation += 4
@@ -59,7 +60,10 @@ class Rewrite(ast.NodeVisitor):
         :param _special_attribute: Special attribute that we need to print instead of value.
         :return: None.
         """
-        to_print = " " * self.indentation  # Prepare indentation first.
+        to_print = ""
+        if self.in_new_line:
+            to_print = " " * self.indentation  # Prepare indentation first.
+            self.in_new_line = False
         if _is_iterable:
             assert hasattr(value, "__iter__")  # Make sure the item is iterable.
             iterable_size = len(value)
@@ -71,6 +75,7 @@ class Rewrite(ast.NodeVisitor):
             to_print += f"{value}" if not _special_attribute else f"{getattr(value, _special_attribute)}"
         if _new_line:
             to_print += "\n"
+            self.in_new_line = True
         return to_print
 
     def print(self, value, *, _new_line=False, _is_iterable=False, _special_attribute=None, _use_visit=False):
@@ -202,6 +207,30 @@ class Rewrite(ast.NodeVisitor):
         self.visit(node.test, new_line=False)
         self.print(", ")
         self.visit(node.msg, new_line=False)
+
+    def visit_If(self, node):
+        self.print("if ")
+        self.visit(node.test, new_line=False)
+        self.print(":", _new_line=True)
+        with self:
+            for i, element in enumerate(node.body):
+                if i + 1 != len(node.body):
+                    self.visit(element)
+                else:
+                    self.visit(element, False)
+        if node.orelse:
+            self.new_line()
+            if type(node.orelse[0]) is _ast.If:
+                self.print("el")
+                self.visit(node.orelse[0], False)
+            else:
+                self.print("else:", _new_line=True)
+                with self:
+                    for i, element in enumerate(node.orelse):
+                        if i + 1 != len(node.orelse):
+                            self.visit(element)
+                        else:
+                            self.visit(element, False)
 
 
 def rewrite(file_name: str):
