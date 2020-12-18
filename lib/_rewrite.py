@@ -218,6 +218,17 @@ class Rewrite(ast.NodeVisitor):
         self.print(", ")
         self.visit(node.msg, new_line=False)
 
+    def visit_keyword(self, node):
+        if node.arg:
+            self.print(f"{node.arg}=")
+        else:
+            self.print(f"**")
+        self.visit(node.value, new_line=False)
+
+    def visit_Starred(self, node):
+        self.print("*")
+        self.visit(node.value, new_line=False)
+
     def visit_If(self, node):
         self.print("if ")
         self.visit(node.test, new_line=False)
@@ -261,6 +272,19 @@ class Rewrite(ast.NodeVisitor):
                         self.visit(element)
                     else:
                         self.visit(element, False)
+
+    def visit_Call(self, node):
+        self.visit(node.func, new_line=False)
+        self.print("(")
+        for i, arg in enumerate(node.args):
+            self.visit(arg, new_line=False)
+            if i + 1 != len(node.args) or node.keywords:
+                self.print(", ")
+        for i, kwarg in enumerate(node.keywords):
+            self.visit(kwarg, new_line=False)
+            if i + 1 != len(node.keywords):
+                self.print(", ")
+        self.print(")")
 
 
 def rewrite(file_name: str):
