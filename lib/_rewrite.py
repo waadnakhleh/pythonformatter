@@ -148,6 +148,12 @@ class Rewrite(ast.NodeVisitor):
     def visit_Name(self, node):
         self.print(node.id)
 
+    def visit_Continue(self, node):
+        self.print("continue")
+
+    def visit_Break(self, node):
+        self.print("break")
+
     def visit_BoolOp(self, node):
         op = "and" if isinstance(node.op, _ast.And) else "or"
         for i, value in enumerate(node.values):
