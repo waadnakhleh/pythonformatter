@@ -99,3 +99,13 @@ def test_if():
 def test_while():
     input_file, output_file = "test_while/input.py", "test_while/output.py"
     make_test(input_file, output_file)
+
+
+def test_break():
+    input_file, output_file = "test_break/input.py", "test_break/output.py"
+    make_test(input_file, output_file)
+
+
+def test_continue():
+    input_file, output_file = "test_continue/input.py", "test_continue/output.py"
+    make_test(input_file, output_file)
