@@ -215,8 +215,9 @@ class Rewrite(ast.NodeVisitor):
     def visit_Assert(self, node):
         self.print("assert ")
         self.visit(node.test, new_line=False)
-        self.print(", ")
-        self.visit(node.msg, new_line=False)
+        if node.msg:
+            self.print(", ")
+            self.visit(node.msg, new_line=False)
 
     def visit_keyword(self, node):
         if node.arg:
