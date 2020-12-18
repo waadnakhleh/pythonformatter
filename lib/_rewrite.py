@@ -232,6 +232,26 @@ class Rewrite(ast.NodeVisitor):
                         else:
                             self.visit(element, False)
 
+    def visit_While(self, node):
+        self.print("while ")
+        self.visit(node.test, new_line=False)
+        self.print(":", _new_line=True)
+        with self:
+            for i, element in enumerate(node.body):
+                if i + 1 != len(node.body):
+                    self.visit(element)
+                else:
+                    self.visit(element, False)
+        if node.orelse:
+            self.new_line()
+            self.print("else:", _new_line=True)
+            with self:
+                for i, element in enumerate(node.orelse):
+                    if i + 1 != len(node.orelse):
+                        self.visit(element)
+                    else:
+                        self.visit(element, False)
+
 
 def rewrite(file_name: str):
     global file

@@ -94,3 +94,8 @@ def test_assert():
 def test_if():
     input_file, output_file = "test_if/input.py", "test_if/output.py"
     make_test(input_file, output_file)
+
+
+def test_while():
+    input_file, output_file = "test_while/input.py", "test_while/output.py"
+    make_test(input_file, output_file)
