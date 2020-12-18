@@ -109,3 +109,8 @@ def test_break():
 def test_continue():
     input_file, output_file = "test_continue/input.py", "test_continue/output.py"
     make_test(input_file, output_file)
+
+
+def test_return():
+    input_file, output_file = "test_return/input.py", "test_return/output.py"
+    make_test(input_file, output_file)

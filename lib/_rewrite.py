@@ -174,6 +174,10 @@ class Rewrite(ast.NodeVisitor):
     def visit_Pass(self, node):
         self.print("pass")
 
+    def visit_Return(self, node):
+        self.print("return ")
+        self.visit(node.value, new_line=False)
+
     def visit_NamedExpr(self, node):
         self.print("(")
         self.visit(node.target, new_line=False)
