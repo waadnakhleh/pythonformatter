@@ -89,3 +89,8 @@ def test_compare():
 def test_assert():
     input_file, output_file = "test_assert/input.py", "test_assert/output.py"
     make_test(input_file, output_file)
+
+
+def test_if():
+    input_file, output_file = "test_if/input.py", "test_if/output.py"
+    make_test(input_file, output_file)
