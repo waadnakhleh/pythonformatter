@@ -119,3 +119,8 @@ def test_return():
 def test_call():
     input_file, output_file = "test_call/input.py", "test_call/output.py"
     make_test(input_file, output_file)
+
+
+def test_functiondef():
+    input_file, output_file = "test_functiondef/input.py", "test_functiondef/output.py"
+    make_test(input_file, output_file)

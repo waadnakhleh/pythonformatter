@@ -1,6 +1,7 @@
 import ast
 import _ast
 from _ast import AST
+from collections import OrderedDict
 
 
 def iter_fields(node):
@@ -230,6 +231,60 @@ class Rewrite(ast.NodeVisitor):
         self.print("*")
         self.visit(node.value, new_line=False)
 
+    def visit_arguments(self, node):
+        ordered_only_pos, ordered_args = Rewrite._ordered_pos_arg_default(node.posonlyargs, node.args, node.defaults)
+        for i, (key, value) in enumerate(ordered_only_pos.items()):
+            self.print(key)
+            if value:
+                self.print(f"=")
+                self.visit(value[0], new_line=False)
+            if i + 1 != len(ordered_only_pos):
+                self.print(", ")
+            else:
+                self.print(", /")
+        if ordered_only_pos and (ordered_args or node.vararg or node.kwonlyargs or node.kwarg):
+            self.print(", ")
+        for i, (key, value) in enumerate(ordered_args.items()):
+            self.print(key)
+            if value:
+                self.print(f"=")
+                self.visit(value[0], new_line=False)
+            if i + 1 != len(ordered_args) or node.vararg or node.kwonlyargs or node.kwarg:
+                self.print(", ")
+        if (ordered_args or ordered_only_pos) and (node.vararg or node.kwonlyargs or node.kwarg):
+            self.print("*")
+        if node.vararg:
+            if not (ordered_args or ordered_only_pos):
+                self.print("*")
+            self.print(f"{node.vararg.arg}")
+        elif not (ordered_args or ordered_only_pos) and (node.kwonlyargs or node.kwarg):
+            self.print("*, ")
+        if (ordered_args or ordered_only_pos) and (node.kwonlyargs or node.kwarg):
+            self.print(", ")
+        for i, item in enumerate(node.kwonlyargs):
+            self.print(item.arg)
+            if node.kw_defaults:
+                if node.kw_defaults[0] is not None:
+                    self.print("=")
+                    self.visit(node.kw_defaults[i], new_line=False)
+            if i + 1 != len(node.kwonlyargs):
+                self.print(", ")
+        if (ordered_args or ordered_only_pos or node.vararg or node.kwonlyargs) and node.kwarg:
+            self.print(f", **{node.kwarg.arg}")
+
+    def visit_FunctionDef(self, node):
+        for decorator in node.decorator_list:
+            self.print("@")
+            self.visit(decorator)
+        self.print(f"def {node.name}(")
+        if node.args:
+            self.visit(node.args, new_line=False)
+        self.print("):", _new_line=True)
+        with self:
+            for element in node.body:
+                self.visit(element)
+        self.new_line()
+
     def visit_If(self, node):
         self.print("if ")
         self.visit(node.test, new_line=False)
@@ -286,6 +341,32 @@ class Rewrite(ast.NodeVisitor):
             if i + 1 != len(node.keywords):
                 self.print(", ")
         self.print(")")
+
+    @staticmethod
+    def _ordered_pos_arg_default(pos_only_args, args, defaults):
+        assert len(pos_only_args) + len(args) >= len(defaults), (len(pos_only_args), len(args),len(defaults))
+        total_args_size = len(pos_only_args) + len(args)
+        default_size = len(defaults)
+        ordered_only_pos = OrderedDict()
+        ordered_args = OrderedDict()
+        pos_defaults = 0
+        for i, pos_only_arg in enumerate(pos_only_args):
+            if i >= total_args_size - default_size:
+                ordered_only_pos[pos_only_arg.arg] = [defaults[i - total_args_size + default_size]]
+                pos_defaults += 1
+            else:
+                ordered_only_pos[pos_only_arg.arg] = []
+        if pos_defaults:
+            for i, arg in enumerate(args):
+                ordered_args[arg.arg] = [defaults[i+pos_defaults]]
+        else:  # No default argument has been used yet.
+            total_defaults = len(args) - len(defaults)
+            for i, arg in enumerate(args):
+                if i >= total_defaults:
+                    ordered_args[arg.arg] = [defaults[i-total_defaults]]
+                else:
+                    ordered_args[arg.arg] = []
+        return ordered_only_pos, ordered_args
 
 
 def rewrite(file_name: str):
