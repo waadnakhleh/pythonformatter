@@ -329,6 +329,29 @@ class Rewrite(ast.NodeVisitor):
                     else:
                         self.visit(element, False)
 
+    def visit_For(self, node):
+        # classFor(target, iter, body, orelse, type_comment)
+        self.print("for ")
+        self.visit(node.target, new_line=False)
+        self.print(" in ")
+        self.visit(node.iter, new_line=False)
+        self.print(":", _new_line=True)
+        with self:
+            for i, element in enumerate(node.body):
+                if i + 1 != len(node.body):
+                    self.visit(element)
+                else:
+                    self.visit(element, False)
+        if node.orelse:
+            self.new_line()
+            self.print("else:", _new_line=True)
+            with self:
+                for i, element in enumerate(node.orelse):
+                    if i + 1 != len(node.orelse):
+                        self.visit(element)
+                    else:
+                        self.visit(element, False)
+
     def visit_Call(self, node):
         self.visit(node.func, new_line=False)
         self.print("(")

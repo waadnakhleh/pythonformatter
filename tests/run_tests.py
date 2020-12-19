@@ -124,3 +124,8 @@ def test_call():
 def test_functiondef():
     input_file, output_file = "test_functiondef/input.py", "test_functiondef/output.py"
     make_test(input_file, output_file)
+
+
+def test_for():
+    input_file, output_file = "test_for/input.py", "test_for/output.py"
+    make_test(input_file, output_file)
