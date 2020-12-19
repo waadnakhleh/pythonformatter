@@ -129,3 +129,8 @@ def test_functiondef():
 def test_for():
     input_file, output_file = "test_for/input.py", "test_for/output.py"
     make_test(input_file, output_file)
+
+
+def test_augassign():
+    input_file, output_file = "test_augassign/input.py", "test_augassign/output.py"
+    make_test(input_file, output_file)
