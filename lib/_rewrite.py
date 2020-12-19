@@ -289,6 +289,31 @@ class Rewrite(ast.NodeVisitor):
                 self.visit(element)
         self.new_line()
 
+    def visit_ClassDef(self, node):
+        for decorator in node.decorator_list:
+            self.print("@")
+            self.visit(decorator)
+        self.print(f"class {node.name}")
+        if node.bases:
+            self.print("(")
+            for i, base in enumerate(node.bases):
+                self.visit(base, new_line=False)
+                if i + 1 != len(node.bases):
+                    self.print(", ")
+        if node.keywords:
+            self.print(", ")
+            for i, keyword in enumerate(node.keywords):
+                self.visit(keyword, new_line=False)
+                if i + 1 != len(node.keywords):
+                    self.print(", ")
+        if node.bases or node.keywords:
+            self.print(")")
+        self.print(":", _new_line=True)
+        with self:
+            for element in node.body:
+                self.visit(element)
+        self.new_line()
+
     def visit_If(self, node):
         self.print("if ")
         self.visit(node.test, new_line=False)

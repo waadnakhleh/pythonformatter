@@ -134,3 +134,8 @@ def test_for():
 def test_augassign():
     input_file, output_file = "test_augassign/input.py", "test_augassign/output.py"
     make_test(input_file, output_file)
+
+
+def test_classdef():
+    input_file, output_file = "test_classdef/input.py", "test_classdef/output.py"
+    make_test(input_file, output_file)
