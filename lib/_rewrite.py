@@ -2,18 +2,7 @@ import ast
 import _ast
 from _ast import AST
 from collections import OrderedDict
-
-
-def iter_fields(node):
-    """
-    Yield a tuple of ``(fieldname, value)`` for each field in ``node._fields``
-    that is present on *node*.
-    """
-    for field in node._fields:
-        try:
-            yield field, getattr(node, field)
-        except AttributeError:
-            pass
+from typing import Optional, IO
 
 
 class Rewrite(ast.NodeVisitor):
@@ -27,7 +16,7 @@ class Rewrite(ast.NodeVisitor):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.indentation -= 4
 
-    def visit(self, node, new_line=True):
+    def visit(self, node, *, _new_line=True):
         """
         Visit a node, this overrides NodeVisitor visit method as we need to
         start a new line between each body element.
@@ -35,22 +24,22 @@ class Rewrite(ast.NodeVisitor):
         method = 'visit_' + node.__class__.__name__
         visitor = getattr(self, method, self.generic_visit)
         visitor_ = visitor(node)
-        if new_line and not isinstance(node, ast.Module):
+        if _new_line and not isinstance(node, ast.Module):
             self.new_line()
         return visitor_
 
     def generic_visit(self, node):
         """Called if no explicit visitor function exists for a node."""
-        for field, value in iter_fields(node):
+        for field, value in ast.iter_fields(node):
             if isinstance(value, list):
                 for item in value:
                     if isinstance(item, AST):
                         if isinstance(node, _ast.Module):
                             self.visit(item)
                         else:
-                            self.visit(item, False)
+                            self.visit(item, _new_line=False)
             elif isinstance(value, AST):
-                self.visit(value, False)
+                self.visit(value, _new_line=False)
 
     def _prepare_line(self, value, _new_line, _is_iterable, _special_attribute):
         """
@@ -94,7 +83,7 @@ class Rewrite(ast.NodeVisitor):
             file.write(to_print)
         elif _is_iterable and _use_visit:
             for i, item in enumerate(value):
-                self.visit(item, new_line=False)
+                self.visit(item, _new_line=False)
                 if i + 1 != len(value):
                     self.print(", ")
 
@@ -116,7 +105,7 @@ class Rewrite(ast.NodeVisitor):
         self.print(f"{ops[type(node.op)]}")
         if isinstance(node.op, _ast.Not):
             self.print(" ")
-        self.visit(node.operand, False)
+        self.visit(node.operand, _new_line=False)
 
     def visit_BinOp(self, node):
         # operator = Add | Sub | Mult | MatMult | Div | Mod | Pow | LShift
@@ -135,9 +124,9 @@ class Rewrite(ast.NodeVisitor):
                _ast.BitAnd: "&",
                _ast.FloorDiv: "//",
                }
-        self.visit(node.left, False)
+        self.visit(node.left, _new_line=False)
         self.print(f" {ops[type(node.op)]} ")
-        self.visit(node.right, False)
+        self.visit(node.right, _new_line=False)
 
     def visit_Constant(self, node):
         if isinstance(node.value, str):
@@ -158,7 +147,7 @@ class Rewrite(ast.NodeVisitor):
     def visit_BoolOp(self, node):
         op = "and" if isinstance(node.op, _ast.And) else "or"
         for i, value in enumerate(node.values):
-            self.visit(value, new_line=False)
+            self.visit(value, _new_line=False)
             if i + 1 != len(node.values):
                 self.print(f" {op} ")
 
@@ -177,20 +166,20 @@ class Rewrite(ast.NodeVisitor):
 
     def visit_Return(self, node):
         self.print("return ")
-        self.visit(node.value, new_line=False)
+        self.visit(node.value, _new_line=False)
 
     def visit_NamedExpr(self, node):
         self.print("(")
-        self.visit(node.target, new_line=False)
+        self.visit(node.target, _new_line=False)
         self.print(f" := ")
-        self.visit(node.value, new_line=False)
+        self.visit(node.value, _new_line=False)
         self.print(")")
 
     def visit_Assign(self, node):
         for target in node.targets:
-            self.visit(target, False)
+            self.visit(target, _new_line=False)
             self.print(" = ")
-        self.visit(node.value, False)
+        self.visit(node.value, _new_line=False)
 
     def visit_Compare(self, node):
         ops = {
@@ -205,31 +194,31 @@ class Rewrite(ast.NodeVisitor):
             _ast.In: "in",
             _ast.NotIn: "not in",
             }
-        self.visit(node.left, new_line=False)
+        self.visit(node.left, _new_line=False)
         self.print(" ")
         for i, (op, comp) in enumerate(zip(node.ops, node.comparators)):
             self.print(f"{ops[type(op)]} ")
-            self.visit(comp, new_line=False)
+            self.visit(comp, _new_line=False)
             if i + 1 != len(node.ops):
                 self.print(" ")
 
     def visit_Assert(self, node):
         self.print("assert ")
-        self.visit(node.test, new_line=False)
+        self.visit(node.test, _new_line=False)
         if node.msg:
             self.print(", ")
-            self.visit(node.msg, new_line=False)
+            self.visit(node.msg, _new_line=False)
 
     def visit_keyword(self, node):
         if node.arg:
             self.print(f"{node.arg}=")
         else:
             self.print(f"**")
-        self.visit(node.value, new_line=False)
+        self.visit(node.value, _new_line=False)
 
     def visit_Starred(self, node):
         self.print("*")
-        self.visit(node.value, new_line=False)
+        self.visit(node.value, _new_line=False)
 
     def visit_arguments(self, node):
         ordered_only_pos, ordered_args = Rewrite._ordered_pos_arg_default(node.posonlyargs, node.args, node.defaults)
@@ -237,7 +226,7 @@ class Rewrite(ast.NodeVisitor):
             self.print(key)
             if value:
                 self.print(f"=")
-                self.visit(value[0], new_line=False)
+                self.visit(value[0], _new_line=False)
             if i + 1 != len(ordered_only_pos):
                 self.print(", ")
             else:
@@ -248,7 +237,7 @@ class Rewrite(ast.NodeVisitor):
             self.print(key)
             if value:
                 self.print(f"=")
-                self.visit(value[0], new_line=False)
+                self.visit(value[0], _new_line=False)
             if i + 1 != len(ordered_args) or node.vararg or node.kwonlyargs or node.kwarg:
                 self.print(", ")
         if (ordered_args or ordered_only_pos) and (node.vararg or node.kwonlyargs or node.kwarg):
@@ -266,7 +255,7 @@ class Rewrite(ast.NodeVisitor):
             if node.kw_defaults:
                 if node.kw_defaults[0] is not None:
                     self.print("=")
-                    self.visit(node.kw_defaults[i], new_line=False)
+                    self.visit(node.kw_defaults[i], _new_line=False)
             if i + 1 != len(node.kwonlyargs):
                 self.print(", ")
         if (ordered_args or ordered_only_pos or node.vararg or node.kwonlyargs) and node.kwarg:
@@ -278,7 +267,7 @@ class Rewrite(ast.NodeVisitor):
             self.visit(decorator)
         self.print(f"def {node.name}(")
         if node.args:
-            self.visit(node.args, new_line=False)
+            self.visit(node.args, _new_line=False)
         self.print("):", _new_line=True)
         with self:
             for element in node.body:
@@ -287,19 +276,19 @@ class Rewrite(ast.NodeVisitor):
 
     def visit_If(self, node):
         self.print("if ")
-        self.visit(node.test, new_line=False)
+        self.visit(node.test, _new_line=False)
         self.print(":", _new_line=True)
         with self:
             for i, element in enumerate(node.body):
                 if i + 1 != len(node.body):
                     self.visit(element)
                 else:
-                    self.visit(element, False)
+                    self.visit(element, _new_line=False)
         if node.orelse:
             self.new_line()
             if type(node.orelse[0]) is _ast.If:
                 self.print("el")
-                self.visit(node.orelse[0], False)
+                self.visit(node.orelse[0], _new_line=False)
             else:
                 self.print("else:", _new_line=True)
                 with self:
@@ -307,41 +296,43 @@ class Rewrite(ast.NodeVisitor):
                         if i + 1 != len(node.orelse):
                             self.visit(element)
                         else:
-                            self.visit(element, False)
+                            self.visit(element, _new_line=False)
 
     def visit_While(self, node):
         self.print("while ")
-        self.visit(node.test, new_line=False)
-        self.print(":", _new_line=True)
-        with self:
-            for i, element in enumerate(node.body):
-                if i + 1 != len(node.body):
-                    self.visit(element)
-                else:
-                    self.visit(element, False)
-        if node.orelse:
-            self.new_line()
-            self.print("else:", _new_line=True)
-            with self:
-                for i, element in enumerate(node.orelse):
-                    if i + 1 != len(node.orelse):
-                        self.visit(element)
-                    else:
-                        self.visit(element, False)
+        self.loops(node, 'test')
 
     def visit_For(self, node):
         # classFor(target, iter, body, orelse, type_comment)
         self.print("for ")
-        self.visit(node.target, new_line=False)
+        self.visit(node.target, _new_line=False)
         self.print(" in ")
-        self.visit(node.iter, new_line=False)
+        self.loops(node, 'iter')
+
+    def visit_Call(self, node):
+        self.visit(node.func, _new_line=False)
+        self.print("(")
+        for i, arg in enumerate(node.args):
+            self.visit(arg, _new_line=False)
+            if i + 1 != len(node.args) or node.keywords:
+                self.print(", ")
+        for i, kwarg in enumerate(node.keywords):
+            self.visit(kwarg, _new_line=False)
+            if i + 1 != len(node.keywords):
+                self.print(", ")
+        self.print(")")
+
+    # Private and helper functions
+    def loops(self, node, attr):
+        node_attr = getattr(node, attr)
+        self.visit(node_attr, _new_line=False)
         self.print(":", _new_line=True)
         with self:
             for i, element in enumerate(node.body):
                 if i + 1 != len(node.body):
                     self.visit(element)
                 else:
-                    self.visit(element, False)
+                    self.visit(element, _new_line=False)
         if node.orelse:
             self.new_line()
             self.print("else:", _new_line=True)
@@ -350,24 +341,13 @@ class Rewrite(ast.NodeVisitor):
                     if i + 1 != len(node.orelse):
                         self.visit(element)
                     else:
-                        self.visit(element, False)
-
-    def visit_Call(self, node):
-        self.visit(node.func, new_line=False)
-        self.print("(")
-        for i, arg in enumerate(node.args):
-            self.visit(arg, new_line=False)
-            if i + 1 != len(node.args) or node.keywords:
-                self.print(", ")
-        for i, kwarg in enumerate(node.keywords):
-            self.visit(kwarg, new_line=False)
-            if i + 1 != len(node.keywords):
-                self.print(", ")
-        self.print(")")
+                        self.visit(element, _new_line=False)
 
     @staticmethod
     def _ordered_pos_arg_default(pos_only_args, args, defaults):
-        assert len(pos_only_args) + len(args) >= len(defaults), (len(pos_only_args), len(args),len(defaults))
+        assert len(pos_only_args) + len(args) >= len(defaults), (
+            len(pos_only_args), len(args), len(defaults)
+        )
         total_args_size = len(pos_only_args) + len(args)
         default_size = len(defaults)
         ordered_only_pos = OrderedDict()
@@ -404,4 +384,4 @@ def rewrite(file_name: str):
         file.close()
 
 
-file = None
+file: Optional[IO] = None
