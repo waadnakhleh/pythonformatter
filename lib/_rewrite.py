@@ -4,18 +4,6 @@ from _ast import AST
 from collections import OrderedDict
 
 
-def iter_fields(node):
-    """
-    Yield a tuple of ``(fieldname, value)`` for each field in ``node._fields``
-    that is present on *node*.
-    """
-    for field in node._fields:
-        try:
-            yield field, getattr(node, field)
-        except AttributeError:
-            pass
-
-
 class Rewrite(ast.NodeVisitor):
     def __init__(self):
         self.indentation = 0
@@ -56,7 +44,7 @@ class Rewrite(ast.NodeVisitor):
 
     def generic_visit(self, node):
         """Called if no explicit visitor function exists for a node."""
-        for field, value in iter_fields(node):
+        for field, value in ast.iter_fields(node):
             if isinstance(value, list):
                 for item in value:
                     if isinstance(item, AST):
