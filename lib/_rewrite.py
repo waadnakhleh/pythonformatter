@@ -276,6 +276,20 @@ class Rewrite(ast.NodeVisitor):
         if (ordered_args or ordered_only_pos or node.vararg or node.kwonlyargs) and node.kwarg:
             self.print(f", **{node.kwarg.arg}")
 
+    def visit_With(self, node):
+        self.print("with ")
+        for i, element in enumerate(node.items):
+            self.visit(element, new_line=False)
+            if i + 1 != len(node.items):
+                self.print(", ")
+        self.print(":", _new_line=True)
+        with self:
+            for i, element in enumerate(node.body):
+                if i + 1 != len(node.body):
+                    self.visit(element)
+                else:
+                    self.visit(element, new_line=False)
+
     def visit_FunctionDef(self, node):
         for decorator in node.decorator_list:
             self.print("@")
