@@ -144,3 +144,8 @@ def test_classdef():
 def test_with():
     input_file, output_file = "test_with/input.py", "test_with/output.py"
     make_test(input_file, output_file)
+
+
+def test_delete():
+    input_file, output_file = "test_delete/input.py", "test_delete/output.py"
+    make_test(input_file, output_file)
