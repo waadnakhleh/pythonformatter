@@ -318,70 +318,17 @@ class Rewrite(ast.NodeVisitor):
 
     def visit_If(self, node):
         self.print("if ")
-        self.visit(node.test, new_line=False)
-        self.print(":", _new_line=True)
-        with self:
-            for i, element in enumerate(node.body):
-                if i + 1 != len(node.body):
-                    self.visit(element)
-                else:
-                    self.visit(element, False)
-        if node.orelse:
-            self.new_line()
-            if type(node.orelse[0]) is _ast.If:
-                self.print("el")
-                self.visit(node.orelse[0], False)
-            else:
-                self.print("else:", _new_line=True)
-                with self:
-                    for i, element in enumerate(node.orelse):
-                        if i + 1 != len(node.orelse):
-                            self.visit(element)
-                        else:
-                            self.visit(element, False)
+        self._block_flow(node=node, first_attr='test', is_if=True)
 
     def visit_While(self, node):
         self.print("while ")
-        self.visit(node.test, new_line=False)
-        self.print(":", _new_line=True)
-        with self:
-            for i, element in enumerate(node.body):
-                if i + 1 != len(node.body):
-                    self.visit(element)
-                else:
-                    self.visit(element, False)
-        if node.orelse:
-            self.new_line()
-            self.print("else:", _new_line=True)
-            with self:
-                for i, element in enumerate(node.orelse):
-                    if i + 1 != len(node.orelse):
-                        self.visit(element)
-                    else:
-                        self.visit(element, False)
+        self._block_flow(node=node, first_attr='test')
 
     def visit_For(self, node):
-        # classFor(target, iter, body, orelse, type_comment)
         self.print("for ")
         self.visit(node.target, new_line=False)
         self.print(" in ")
-        self.visit(node.iter, new_line=False)
-        self.print(":", _new_line=True)
-        with self:
-            for i, element in enumerate(node.body):
-                if i + 1 != len(node.body):
-                    self.visit(element)
-                else:
-                    self.visit(element, False)
-        if node.orelse:
-            self.new_line()
-            self.print("else:", _new_line=True)
-            with self:
-                for i, element in enumerate(node.orelse):
-                    if i + 1 != len(node.orelse):
-                        self.visit(element)
-                    else:
-                        self.visit(element, False)
+        self._block_flow(node=node, first_attr='iter')
 
     def visit_Call(self, node):
         self.visit(node.func, new_line=False)
@@ -396,9 +343,33 @@ class Rewrite(ast.NodeVisitor):
                 self.print(", ")
         self.print(")")
 
+    def _block_flow(self, node, first_attr, is_if=False):
+        node_attr = getattr(node, first_attr)
+        self.visit(node_attr, new_line=False)
+        self.print(":", _new_line=True)
+        with self:
+            for i, element in enumerate(node.body):
+                if i + 1 != len(node.body):
+                    self.visit(element)
+                else:
+                    self.visit(element, False)
+        if node.orelse:
+            self.new_line()
+            if is_if and type(node.orelse[0]) is _ast.If:
+                self.print("el")
+                self.visit(node.orelse[0], False)
+            else:
+                self.print("else:", _new_line=True)
+                with self:
+                    for i, element in enumerate(node.orelse):
+                        if i + 1 != len(node.orelse):
+                            self.visit(element)
+                        else:
+                            self.visit(element, False)
+
     @staticmethod
     def _ordered_pos_arg_default(pos_only_args, args, defaults):
-        assert len(pos_only_args) + len(args) >= len(defaults), (len(pos_only_args), len(args),len(defaults))
+        assert len(pos_only_args) + len(args) >= len(defaults), (len(pos_only_args), len(args), len(defaults))
         total_args_size = len(pos_only_args) + len(args)
         default_size = len(defaults)
         ordered_only_pos = OrderedDict()
