@@ -147,6 +147,13 @@ class Rewrite(ast.NodeVisitor):
     def visit_Break(self, node):
         self.print("break")
 
+    def visit_Delete(self, node):
+        self.print("del ")
+        for i, target in enumerate(node.targets):
+            self.visit(target, new_line=False)
+            if i + 1 != len(node.targets):
+                self.print(", ")
+
     def visit_BoolOp(self, node):
         op = "and" if isinstance(node.op, _ast.And) else "or"
         for i, value in enumerate(node.values):
