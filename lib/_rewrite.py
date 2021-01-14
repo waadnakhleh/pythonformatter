@@ -247,6 +247,11 @@ class Rewrite(ast.NodeVisitor):
             self.print(f"**")
         self.visit(node.value, new_line=False)
 
+    def visit_Attribute(self, node):
+        self.visit(node.value, new_line=False)
+        self.print(".")
+        self.print(node.attr)
+
     def visit_Starred(self, node):
         self.print("*")
         self.visit(node.value, new_line=False)
