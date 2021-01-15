@@ -252,6 +252,31 @@ class Rewrite(ast.NodeVisitor):
         self.print(".")
         self.print(node.attr)
 
+    def visit_Try(self, node):
+        self.print("try:", _new_line=True)
+        with self:
+            self._visit_list(node.body)
+        for handle in node.handlers:
+            self.visit(handle, new_line=False)
+        if node.orelse:
+            self.print("else:", _new_line=True)
+            with self:
+                self._visit_list(node.orelse)
+        if node.finalbody:
+            self.print("finally:", _new_line=True)
+            with self:
+                self._visit_list(node.finalbody, _new_line_at_finish=False)
+
+    def visit_ExceptHandler(self, node):
+        self.print("except ")
+        self.visit(node.type, new_line=False)
+        if node.name:
+            self.print(f" as {node.name}")
+        self.print(":", _new_line=True)
+        with self:
+            for element in node.body:
+                self.visit(element)
+
     def visit_Starred(self, node):
         self.print("*")
         self.visit(node.value, new_line=False)
@@ -412,6 +437,10 @@ class Rewrite(ast.NodeVisitor):
                             self.visit(element)
                         else:
                             self.visit(element, False)
+
+    def _visit_list(self, nodes_list, *, _new_line_at_finish=True):
+        for i, node in enumerate(nodes_list):
+            self.visit(node, new_line=i + 1 != len(nodes_list) or _new_line_at_finish)
 
     @staticmethod
     def _ordered_pos_arg_default(pos_only_args, args, defaults):

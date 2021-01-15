@@ -154,3 +154,8 @@ def test_delete():
 def test_attribute():
     input_file, output_file = "test_attribute/input.py", "test_attribute/output.py"
     make_test(input_file, output_file)
+
+
+def test_try():
+    input_file, output_file = "test_try/input.py", "test_try/output.py"
+    make_test(input_file, output_file)
