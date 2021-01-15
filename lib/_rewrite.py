@@ -268,8 +268,10 @@ class Rewrite(ast.NodeVisitor):
                 self._visit_list(node.finalbody, _new_line_at_finish=False)
 
     def visit_ExceptHandler(self, node):
-        self.print("except ")
-        self.visit(node.type, new_line=False)
+        self.print("except")
+        if node.type:
+            self.print(" ")
+            self.visit(node.type, new_line=False)
         if node.name:
             self.print(f" as {node.name}")
         self.print(":", _new_line=True)
