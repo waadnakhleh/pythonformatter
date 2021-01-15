@@ -21,3 +21,8 @@ else:
 
 finally:
     print("some cleanup")
+
+try:
+    pass
+except:
+    handle_exception()
