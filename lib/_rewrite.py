@@ -199,6 +199,10 @@ class Rewrite(ast.NodeVisitor):
         self.print("return ")
         self.visit(node.value, new_line=False)
 
+    def visit_Global(self, node):
+        self.print("global ")
+        self.print(node.names, _is_iterable=True)
+
     def visit_NamedExpr(self, node):
         self.print("(")
         self.visit(node.target, new_line=False)

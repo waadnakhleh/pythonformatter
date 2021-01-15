@@ -164,3 +164,7 @@ def test_try():
 def test_raise():
     input_file, output_file = "test_raise/input.py", "test_raise/output.py"
     make_test(input_file, output_file)
+
+def test_global():
+    input_file, output_file = "test_global/input.py", "test_global/output.py"
+    make_test(input_file, output_file)
