@@ -203,6 +203,10 @@ class Rewrite(ast.NodeVisitor):
         self.print("global ")
         self.print(node.names, _is_iterable=True)
 
+    def visit_Nonlocal(self, node):
+        self.print("nonlocal ")
+        self.print(node.names, _is_iterable=True)
+
     def visit_NamedExpr(self, node):
         self.print("(")
         self.visit(node.target, new_line=False)
