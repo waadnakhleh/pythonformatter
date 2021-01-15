@@ -252,6 +252,15 @@ class Rewrite(ast.NodeVisitor):
         self.print(".")
         self.print(node.attr)
 
+    def visit_Raise(self, node):
+        self.print("raise")
+        if node.exc:
+            self.print(" ")
+            self.visit(node.exc, new_line=False)
+        if node.cause:
+            self.print(" from ")
+            self.visit(node.cause, new_line=False)
+
     def visit_Try(self, node):
         self.print("try:", _new_line=True)
         with self:
@@ -259,6 +268,7 @@ class Rewrite(ast.NodeVisitor):
         for handle in node.handlers:
             self.visit(handle, new_line=False)
         if node.orelse:
+            self.new_line()
             self.print("else:", _new_line=True)
             with self:
                 self._visit_list(node.orelse)
@@ -274,8 +284,7 @@ class Rewrite(ast.NodeVisitor):
             self.print(f" as {node.name}")
         self.print(":", _new_line=True)
         with self:
-            for element in node.body:
-                self.visit(element)
+            self._visit_list(node.body, _new_line_at_finish=False)
 
     def visit_Starred(self, node):
         self.print("*")
