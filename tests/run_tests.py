@@ -159,3 +159,8 @@ def test_attribute():
 def test_try():
     input_file, output_file = "test_try/input.py", "test_try/output.py"
     make_test(input_file, output_file)
+
+
+def test_raise():
+    input_file, output_file = "test_raise/input.py", "test_raise/output.py"
+    make_test(input_file, output_file)
