@@ -6,7 +6,7 @@ import _rewrite
 def confirm(output):
     compare_to = "modified_file.py"
     assert filecmp.cmp(output, compare_to)
-    open(compare_to, 'w').close()  # Empty file
+    open(compare_to, "w").close()  # Empty file
 
 
 def make_test(input_file, output_file):
@@ -173,4 +173,9 @@ def test_global():
 
 def test_nonlocal():
     input_file, output_file = "test_nonlocal/input.py", "test_nonlocal/output.py"
+    make_test(input_file, output_file)
+
+
+def test_general():
+    input_file, output_file = "test_general/input.py", "test_general/output.py"
     make_test(input_file, output_file)

@@ -8,6 +8,8 @@ class Rewrite(ast.NodeVisitor):
     def __init__(self):
         self.indentation = 0
         self.in_new_line = True
+        self.nested_scope = [False]
+        self.latest_class = False
         self.ar_ops = {
             _ast.Add: "+",
             _ast.Sub: "-",
@@ -26,9 +28,11 @@ class Rewrite(ast.NodeVisitor):
 
     def __enter__(self):
         self.indentation += 4
+        self.nested_scope.append(True)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.indentation -= 4
+        self.nested_scope.pop()
 
     def visit(self, node, new_line=True):
         """
@@ -65,6 +69,10 @@ class Rewrite(ast.NodeVisitor):
         :return: None.
         """
         to_print = ""
+        if _new_line and not value:
+            to_print = "\n"
+            self.in_new_line = True
+            return to_print
         if self.in_new_line:
             to_print = " " * self.indentation  # Prepare indentation first.
             self.in_new_line = False
@@ -119,8 +127,12 @@ class Rewrite(ast.NodeVisitor):
                 if i + 1 != len(value):
                     self.print(", ")
 
-    def new_line(self):
-        self.print("", _new_line=True)
+    def new_line(self, num=1):
+        [self.print("", _new_line=True) for _ in range(num)]
+
+    def visit_Module(self, node):
+        for i, body_node in enumerate(node.body):
+            self.visit(body_node)
 
     def visit_Import(self, node):
         imports_list = node.names
@@ -377,9 +389,11 @@ class Rewrite(ast.NodeVisitor):
             self.visit(node.args, new_line=False)
         self.print("):", _new_line=True)
         with self:
-            for element in node.body:
-                self.visit(element)
-        self.new_line()
+            for i, element in enumerate(node.body):
+                self.visit(element, new_line=i+1 != len(node.body))
+        if self.latest_class:
+            return
+        self.new_line(1 if self.nested_scope[-1] else 2)
 
     def visit_ClassDef(self, node):
         for decorator in node.decorator_list:
@@ -402,9 +416,12 @@ class Rewrite(ast.NodeVisitor):
             self.print(")")
         self.print(":", _new_line=True)
         with self:
-            for element in node.body:
-                self.visit(element)
-        self.new_line()
+            for i, element in enumerate(node.body):
+                if i+1 == len(node.body):
+                    self.latest_class = True
+                self.visit(element, new_line=i+1 != len(node.body))
+                self.latest_class = False
+        self.new_line(1 if self.nested_scope[-1] else 2)
 
     def visit_If(self, node):
         self.print("if ")
