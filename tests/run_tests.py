@@ -5,8 +5,10 @@ import _rewrite
 
 def confirm(output):
     compare_to = "modified_file.py"
-    assert filecmp.cmp(output, compare_to)
-    open(compare_to, "w").close()  # Empty file
+    try:
+        assert filecmp.cmp(output, compare_to)
+    finally:
+        open(compare_to, "w").close()  # Empty file
 
 
 def make_test(input_file, output_file):
