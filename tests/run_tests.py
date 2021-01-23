@@ -193,6 +193,10 @@ def test_docstring():
     make_test(input_file, output_file)
 
 
+def test_ifexpr():
+    input_file, output_file = "test_ifexpr/input.py", "test_ifexpr/output.py"
+    make_test(input_file, output_file)
+
 def test_general():
     input_file, output_file = "test_general/input.py", "test_general/output.py"
     make_test(input_file, output_file)
