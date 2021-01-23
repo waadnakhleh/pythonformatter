@@ -259,6 +259,27 @@ class Rewrite(ast.NodeVisitor):
             if i + 1 != len(node.ops):
                 self.print(" ")
 
+    def visit_Subscript(self, node):
+        self.visit(node.value, new_line=False)
+        self.visit(node.slice, new_line=False)
+
+    def visit_Index(self, node):
+        self.print('[')
+        self.visit(node.value, new_line=False)
+        self.print(']')
+
+    def visit_Slice(self, node):
+        self.print('[')
+        if node.lower:
+            self.visit(node.lower, new_line=False)
+        self.print(":")
+        if node.upper:
+            self.visit(node.upper, new_line=False)
+        if node.step:
+            self.print(":")
+            self.visit(node.step, new_line=False)
+        self.print(']')
+
     def visit_Assert(self, node):
         self.print("assert ")
         self.visit(node.test, new_line=False)
