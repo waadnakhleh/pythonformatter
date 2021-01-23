@@ -183,6 +183,11 @@ def test_subscript():
     make_test(input_file, output_file)
 
 
+def test_listcomp():
+    input_file, output_file = "test_subscript/input.py", "test_subscript/output.py"
+    make_test(input_file, output_file)
+
+
 def test_general():
     input_file, output_file = "test_general/input.py", "test_general/output.py"
     make_test(input_file, output_file)
