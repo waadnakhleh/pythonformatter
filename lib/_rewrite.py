@@ -500,6 +500,13 @@ class Rewrite(ast.NodeVisitor):
             self.visit(generator, new_line=False)
         self.print("]")
 
+    def visit_IfExp(self, node):
+        self.visit(node.body, new_line=False)
+        self.print(" if ")
+        self.visit(node.test, new_line=False)
+        self.print(" else ")
+        self.visit(node.orelse, new_line=False)
+
     def visit_comprehension(self, node):
         self.visit(node.target, new_line=False)
         self.print(" in ")
