@@ -1,4 +1,6 @@
 from pytest import fixture
+
+
 @fixture
 def my_new_func(a, f="fuck", /, b="2", c="TEST", *args, testy, test, **kwargs):
     print("Hello, world!")

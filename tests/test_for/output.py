@@ -10,6 +10,8 @@ else:
     print("finished regularly")
 for (i, name) in enumerate(names):
     print(i, " ", name)
+
+
 def new_func():
     b = 0
     for i in range(50):
