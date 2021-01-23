@@ -132,7 +132,10 @@ class Rewrite(ast.NodeVisitor):
 
     def visit_Module(self, node):
         for i, body_node in enumerate(node.body):
-            self.visit(body_node)
+            if i == 0 and ast.get_docstring(node):
+                self.visit_Constant(body_node.value, is_docstring=True)
+            else:
+                self.visit(body_node)
             if (
                 i + 1 != len(node.body)
                 and isinstance(node.body[i + 1], (_ast.FunctionDef, _ast.ClassDef))
@@ -170,12 +173,17 @@ class Rewrite(ast.NodeVisitor):
         self.print(f" {self.ar_ops[type(node.op)]}= ")
         self.visit(node.value, new_line=False)
 
-    def visit_Constant(self, node):
+    def visit_Constant(self, node, is_docstring=False):
         if isinstance(node.value, str):
             self.print('"')
+            if is_docstring:
+                self.print('""')
         self.print(node.value)
         if isinstance(node.value, str):
             self.print('"')
+            if is_docstring:
+                self.print('""')
+                self.new_line()
 
     def visit_Name(self, node):
         self.print(node.id)
@@ -416,7 +424,11 @@ class Rewrite(ast.NodeVisitor):
             self.visit(node.args, new_line=False)
         self.print("):", _new_line=True)
         with self:
+            if ast.get_docstring(node):
+                self.visit_Constant(node.body[0].value, is_docstring=True)
             for i, element in enumerate(node.body):
+                if ast.get_docstring(node) and i == 0:
+                    continue
                 self.visit(element, new_line=i + 1 != len(node.body))
         if self.latest_class:
             return
@@ -444,6 +456,9 @@ class Rewrite(ast.NodeVisitor):
         self.print(":", _new_line=True)
         with self:
             for i, element in enumerate(node.body):
+                if ast.get_docstring(node) and i == 0:
+                    self.visit_Constant(node.body[0].value, is_docstring=True)
+                    continue
                 if i + 1 == len(node.body):
                     self.latest_class = True
                 self.visit(element, new_line=i + 1 != len(node.body))
