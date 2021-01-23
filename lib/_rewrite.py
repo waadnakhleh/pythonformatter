@@ -264,12 +264,12 @@ class Rewrite(ast.NodeVisitor):
         self.visit(node.slice, new_line=False)
 
     def visit_Index(self, node):
-        self.print('[')
+        self.print("[")
         self.visit(node.value, new_line=False)
-        self.print(']')
+        self.print("]")
 
     def visit_Slice(self, node):
-        self.print('[')
+        self.print("[")
         if node.lower:
             self.visit(node.lower, new_line=False)
         self.print(":")
@@ -278,7 +278,7 @@ class Rewrite(ast.NodeVisitor):
         if node.step:
             self.print(":")
             self.visit(node.step, new_line=False)
-        self.print(']')
+        self.print("]")
 
     def visit_Assert(self, node):
         self.print("assert ")
@@ -476,6 +476,23 @@ class Rewrite(ast.NodeVisitor):
             if i + 1 != len(node.keywords):
                 self.print(", ")
         self.print(")")
+
+    def visit_ListComp(self, node):
+        self.print("[")
+        self.visit(node.elt, new_line=False)
+        for generator in node.generators:
+            self.print(" for ")
+            self.visit(generator, new_line=False)
+        self.print("]")
+
+    def visit_comprehension(self, node):
+        self.visit(node.target, new_line=False)
+        self.print(" in ")
+        self.visit(node.iter, new_line=False)
+        if node.ifs:
+            for if_liner in node.ifs:
+                self.print(" if ")
+                self.visit(if_liner, new_line=False)
 
     def _block_flow(self, node, first_attr, is_if=False):
         node_attr = getattr(node, first_attr)
