@@ -1,4 +1,6 @@
 (x, y) = (10, 20)
+
+
 def foo():
     global x, y
     x = 20

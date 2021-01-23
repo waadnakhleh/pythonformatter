@@ -1,6 +1,8 @@
-
+import random
 class Ages():
-    def __init__(self, age):
+    def __init__(self, age=None):
+        if not age:
+            age = random.choice(range(0,99))
         self.age = age
 
     def __str__(self):
@@ -22,3 +24,5 @@ def foobar():
     print ("this is foobar")
 foo()()
 foobar()
+a =Ages(2)
+b = Ages()

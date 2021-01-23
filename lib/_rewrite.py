@@ -133,6 +133,12 @@ class Rewrite(ast.NodeVisitor):
     def visit_Module(self, node):
         for i, body_node in enumerate(node.body):
             self.visit(body_node)
+            if (
+                i + 1 != len(node.body)
+                and isinstance(node.body[i + 1], (_ast.FunctionDef, _ast.ClassDef))
+                and not isinstance(node.body[i], (_ast.FunctionDef, _ast.ClassDef))
+            ):
+                self.new_line(2)
 
     def visit_Import(self, node):
         imports_list = node.names
@@ -390,7 +396,7 @@ class Rewrite(ast.NodeVisitor):
         self.print("):", _new_line=True)
         with self:
             for i, element in enumerate(node.body):
-                self.visit(element, new_line=i+1 != len(node.body))
+                self.visit(element, new_line=i + 1 != len(node.body))
         if self.latest_class:
             return
         self.new_line(1 if self.nested_scope[-1] else 2)
@@ -417,9 +423,9 @@ class Rewrite(ast.NodeVisitor):
         self.print(":", _new_line=True)
         with self:
             for i, element in enumerate(node.body):
-                if i+1 == len(node.body):
+                if i + 1 == len(node.body):
                     self.latest_class = True
-                self.visit(element, new_line=i+1 != len(node.body))
+                self.visit(element, new_line=i + 1 != len(node.body))
                 self.latest_class = False
         self.new_line(1 if self.nested_scope[-1] else 2)
 
