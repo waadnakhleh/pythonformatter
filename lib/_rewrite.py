@@ -222,8 +222,10 @@ class Rewrite(ast.NodeVisitor):
         self.print("pass")
 
     def visit_Return(self, node):
-        self.print("return ")
-        self.visit(node.value, new_line=False)
+        self.print("return")
+        if node.value:
+            self.print(" ")
+            self.visit(node.value, new_line=False)
 
     def visit_Global(self, node):
         self.print("global ")
