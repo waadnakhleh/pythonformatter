@@ -213,6 +213,18 @@ class Rewrite(ast.NodeVisitor):
         self.print(node.elts, _is_iterable=True, _use_visit=True)
         self.print("]")
 
+    def visit_Dict(self, node):
+        self.print("{")
+        self.new_line()
+        with self:
+            for key, value in zip(node.keys, node.values):
+                self.visit(key, new_line=False)
+                self.print(": ")
+                self.visit(value, new_line=False)
+                self.print(",")
+                self.new_line()
+        self.print("}")
+
     def visit_Tuple(self, node):
         self.print("(")
         self.print(node.elts, _is_iterable=True, _use_visit=True)
