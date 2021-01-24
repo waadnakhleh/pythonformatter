@@ -401,6 +401,12 @@ class Rewrite(ast.NodeVisitor):
         ) and node.kwarg:
             self.print(f", **{node.kwarg.arg}")
 
+    def visit_withitem(self, node):
+        self.visit(node.context_expr, new_line=False)
+        if node.optional_vars:
+            self.print(" as ")
+            self.visit(node.optional_vars, new_line=False)
+
     def visit_With(self, node):
         self.print("with ")
         for i, element in enumerate(node.items):
