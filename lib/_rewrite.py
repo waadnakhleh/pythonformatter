@@ -10,6 +10,8 @@ class Rewrite(ast.NodeVisitor):
         self.in_new_line = True
         self.nested_scope = [False]
         self.latest_class = False
+        self.max_line = 88
+        self.current_line_len = 0
         self.ar_ops = {
             _ast.Add: "+",
             _ast.Sub: "-",
@@ -120,6 +122,9 @@ class Rewrite(ast.NodeVisitor):
             to_print = self._prepare_line(
                 value, _new_line, _is_iterable, _special_attribute
             )
+            self.current_line_len += len(to_print)
+            if _new_line:
+                self.current_line_len = 0
             file.write(to_print)
         elif _is_iterable and _use_visit:
             for i, item in enumerate(value):
