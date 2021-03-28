@@ -11,6 +11,7 @@ class Rewrite(ast.NodeVisitor):
         self.nested_scope = [False]
         self.latest_class = False
         self.max_line = 88
+        self.current_line = ""
         self.current_line_len = 0
         self.ar_ops = {
             _ast.Add: "+",
@@ -36,14 +37,14 @@ class Rewrite(ast.NodeVisitor):
         self.indentation -= 4
         self.nested_scope.pop()
 
-    def visit(self, node, new_line=True):
+    def visit(self, node, new_line=True, _long=False):
         """
         Visit a node, this overrides NodeVisitor visit method as we need to
         start a new line between each body element.
         """
         method = "visit_" + node.__class__.__name__
         visitor = getattr(self, method, self.generic_visit)
-        visitor_ = visitor(node)
+        visitor_ = visitor(node) if not _long else visitor(node, _long=_long)
         if new_line and not isinstance(node, ast.Module):
             self.new_line()
         return visitor_
@@ -122,18 +123,28 @@ class Rewrite(ast.NodeVisitor):
             to_print = self._prepare_line(
                 value, _new_line, _is_iterable, _special_attribute
             )
+            self.current_line += to_print
             self.current_line_len += len(to_print)
             if _new_line:
+                if self.current_line_len > self.max_line:
+                    print(self.current_line_len)
+                    return False
+                file.write(self.current_line)
+                self.current_line = ""
                 self.current_line_len = 0
-            file.write(to_print)
         elif _is_iterable and _use_visit:
             for i, item in enumerate(value):
                 self.visit(item, new_line=False)
                 if i + 1 != len(value):
                     self.print(", ")
+        return True
 
     def new_line(self, num=1):
         [self.print("", _new_line=True) for _ in range(num)]
+
+    def init_retry(self):
+        self.current_line = ""
+        self.current_line_len = 0
 
     def visit_Module(self, node):
         for i, body_node in enumerate(node.body):
@@ -366,7 +377,7 @@ class Rewrite(ast.NodeVisitor):
         self.print("*")
         self.visit(node.value, new_line=False)
 
-    def visit_arguments(self, node):
+    def visit_arguments(self, node, _long=False):
         ordered_only_pos, ordered_args = Rewrite._ordered_pos_arg_default(
             node.posonlyargs, node.args, node.defaults
         )
@@ -376,13 +387,13 @@ class Rewrite(ast.NodeVisitor):
                 self.print(f"=")
                 self.visit(value[0], new_line=False)
             if i + 1 != len(ordered_only_pos):
-                self.print(", ")
+                self.print(", " if not _long else ",", _new_line=_long)
             else:
                 self.print(", /")
         if ordered_only_pos and (
             ordered_args or node.vararg or node.kwonlyargs or node.kwarg
         ):
-            self.print(", ")
+            self.print(", " if not _long else ",", _new_line=_long)
         for i, (key, value) in enumerate(ordered_args.items()):
             self.print(key)
             if value:
@@ -394,7 +405,7 @@ class Rewrite(ast.NodeVisitor):
                 or node.kwonlyargs
                 or node.kwarg
             ):
-                self.print(", ")
+                self.print(", " if not _long else ",", _new_line=_long)
         if (ordered_args or ordered_only_pos) and (
             node.vararg or node.kwonlyargs or node.kwarg
         ):
@@ -440,14 +451,27 @@ class Rewrite(ast.NodeVisitor):
                 else:
                     self.visit(element, new_line=False)
 
-    def visit_FunctionDef(self, node):
+    def visit_FunctionDef(self, node, _long=False):
         for decorator in node.decorator_list:
             self.print("@")
             self.visit(decorator)
-        self.print(f"def {node.name}(")
+        self.print(f"def {node.name}(", _new_line=_long)
+        if _long:
+            self.__enter__()
         if node.args:
             self.visit(node.args, new_line=False)
-        self.print("):", _new_line=True)
+            if _long and not self.line_is_good():
+                self.in_new_line = True
+                self.init_retry()
+                self.visit_arguments(node.args, _long=True)
+        if _long:
+            self.__exit__(None, None, None)
+            self.new_line()
+        if not self.print("):", _new_line=True):
+            self.init_retry()
+            self.visit_FunctionDef(node, _long=True)
+            return
+
         with self:
             if ast.get_docstring(node):
                 self.visit_Constant(node.body[0].value, is_docstring=True)
@@ -600,6 +624,9 @@ class Rewrite(ast.NodeVisitor):
                 else:
                     ordered_args[arg.arg] = []
         return ordered_only_pos, ordered_args
+
+    def line_is_good(self):
+        return self.current_line_len <= self.max_line
 
 
 def rewrite(file_name: str):

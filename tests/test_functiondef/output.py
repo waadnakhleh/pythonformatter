@@ -36,3 +36,23 @@ def foo_bar(arg1="quick brown fox", *, arg2=False):
 
 
 my_new_func(10, 3, d=3)
+
+
+def function_that_exceeds_the_max_len_number_by_far(
+    first_arguments, second_argument, third_argument
+):
+    pass
+
+
+def function_that_exceeds_the_max_len_number_by_far(
+    first_arguments,
+    second_argument,
+    third_argument,
+    fourth_argument,
+    fifth_argument,
+    sixth_argument
+):
+    pass
+
+
+function_that_exceeds_the_max_len_number_by_far(1, 2, 3, 4, 5, 6)
