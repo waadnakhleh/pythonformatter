@@ -9,7 +9,7 @@ def confirm(output):
     try:
         assert filecmp.cmp(output, compare_to)
     except AssertionError as e:
-        with open(output) as f:
+        with open(compare_to) as f:
             if not os.path.isdir("logs"):
                 os.mkdir("logs")
             lines = f.readlines()
