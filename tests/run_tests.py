@@ -1,4 +1,5 @@
 import filecmp
+import os
 import pytest
 import _rewrite
 
@@ -7,6 +8,15 @@ def confirm(output):
     compare_to = "modified_file.py"
     try:
         assert filecmp.cmp(output, compare_to)
+    except AssertionError as e:
+        with open(output) as f:
+            if not os.path.isdir("logs"):
+                os.mkdir("logs")
+            lines = f.readlines()
+            lines = [l for l in lines]
+            with open(f"logs/log_{output[:len('output.py')]}.py", "w") as f1:
+                f1.writelines(lines)
+        raise e
     finally:
         open(compare_to, "w").close()  # Empty file
 
