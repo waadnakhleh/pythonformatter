@@ -14,7 +14,7 @@ def confirm(output):
                 os.mkdir("logs")
             lines = f.readlines()
             lines = [l for l in lines]
-            with open(f"logs/log_{output[:len('output.py')]}.py", "w") as f1:
+            with open(f"logs/log_{output[:len(output)-len('/output.py')]}.py", "w") as f1:
                 f1.writelines(lines)
         raise e
     finally:
