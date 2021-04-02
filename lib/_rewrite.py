@@ -1,7 +1,13 @@
 import ast
 import _ast
+import logging
 from _ast import AST
 from collections import OrderedDict
+
+
+# Remove the following comment to see print log on stdout.
+# To see more detailed logging, change level to logging.DEBUG.
+# logging.getLogger().setLevel(logging.INFO)
 
 
 class Rewrite(ast.NodeVisitor):
@@ -30,10 +36,12 @@ class Rewrite(ast.NodeVisitor):
         }
 
     def __enter__(self):
+        logging.info(f"Start indentation = {self.indentation + 4}")
         self.indentation += 4
         self.nested_scope.append(True)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        logging.info(f"Close indentation = {self.indentation - 4}")
         self.indentation -= 4
         self.nested_scope.pop()
 
@@ -44,6 +52,7 @@ class Rewrite(ast.NodeVisitor):
         """
         method = "visit_" + node.__class__.__name__
         visitor = getattr(self, method, self.generic_visit)
+        logging.info(f"in visit(), visitor={visitor}")
         visitor_ = visitor(node)
         if new_line and not isinstance(node, ast.Module):
             self.new_line()
@@ -51,6 +60,7 @@ class Rewrite(ast.NodeVisitor):
 
     def generic_visit(self, node):
         """Called if no explicit visitor function exists for a node."""
+        logging.info(f"in generic_visit(), node={node}")
         for field, value in ast.iter_fields(node):
             if isinstance(value, list):
                 for item in value:
@@ -123,12 +133,20 @@ class Rewrite(ast.NodeVisitor):
             to_print = self._prepare_line(
                 value, _new_line, _is_iterable, _special_attribute
             )
+            logging.debug(f"in print(), to_print={to_print}")
             self.current_line_len += len(to_print)
             self.current_line += to_print
+            logging.debug(f"current line={self.current_line}, line length={self.current_line_len}")
             if _new_line and self.current_line_len <= self.max_line:
                 file.write(self.current_line)
                 self.current_line_len = 0
                 self.current_line = ""
+            elif _new_line:  # Exceeded line limitation
+                # TODO: Handle writing long lines properly
+                file.write(self.current_line)
+                logging.warning("Line exceeded limit")
+                self.current_line_len = 0
+                self.current_line = 0
         elif _is_iterable and _use_visit:
             for i, item in enumerate(value):
                 self.visit(item, new_line=False)
@@ -139,6 +157,7 @@ class Rewrite(ast.NodeVisitor):
         [self.print("", _new_line=True) for _ in range(num)]
 
     def visit_Module(self, node):
+        logging.info("in visit_Module")
         for i, body_node in enumerate(node.body):
             if i == 0 and ast.get_docstring(node):
                 self.visit_Constant(body_node.value, is_docstring=True)
@@ -152,6 +171,7 @@ class Rewrite(ast.NodeVisitor):
                 self.new_line(2)
 
     def visit_Import(self, node):
+        logging.info(f"in visit_Import")
         imports_list = node.names
         for i, name in enumerate(imports_list):
             self.print(
@@ -160,28 +180,38 @@ class Rewrite(ast.NodeVisitor):
             )
 
     def visit_ImportFrom(self, node):
+        logging.info(f"in visit_ImportFrom")
         import_list = node.names
         self.print(f"from {node.module} import ")
         self.print(import_list, _is_iterable=True, _special_attribute="name")
 
     def visit_UnaryOp(self, node):
         ops = {_ast.Not: "not", ast.Invert: "~", ast.UAdd: "+", ast.USub: "-"}
-        self.print(f"{ops[type(node.op)]}")
+        op = ops[type(node.op)]
+        logging.info(f"in visit_UnaryOp, op={op}, operand={node.operand}")
+
+        self.print(f"{op}")
         if isinstance(node.op, _ast.Not):
             self.print(" ")
         self.visit(node.operand, False)
 
     def visit_BinOp(self, node):
+        logging.info(f"in visit_BinOp, left={node.left} op={self.ar_ops[type(node.op)]}, right={node.right}")
         self.visit(node.left, False)
         self.print(f" {self.ar_ops[type(node.op)]} ")
         self.visit(node.right, False)
 
     def visit_AugAssign(self, node):
+        logging.info(f"in visit_AugAssign, target={node.target} op={self.ar_ops[type(node.op)]}, value={node.value}")
         self.visit(node.target, new_line=False)
         self.print(f" {self.ar_ops[type(node.op)]}= ")
         self.visit(node.value, new_line=False)
 
     def visit_Constant(self, node, is_docstring=False):
+        if is_docstring:
+            logging.info(f"in visit_Constant, visiting docstring")
+        else:
+            logging.info(f"in visit_Constant, value={node.value}")
         if isinstance(node.value, str):
             self.print('"')
             if is_docstring:
@@ -194,15 +224,19 @@ class Rewrite(ast.NodeVisitor):
                 self.new_line()
 
     def visit_Name(self, node):
+        logging.info(f"in visit_Name, node.id={node.id}")
         self.print(node.id)
 
     def visit_Continue(self, node):
+        logging.info(f"in visit_Continue")
         self.print("continue")
 
     def visit_Break(self, node):
+        logging.info(f"in visit_Break")
         self.print("break")
 
     def visit_Delete(self, node):
+        logging.info(f"in visit_Delete")
         self.print("del ")
         for i, target in enumerate(node.targets):
             self.visit(target, new_line=False)
@@ -211,17 +245,20 @@ class Rewrite(ast.NodeVisitor):
 
     def visit_BoolOp(self, node):
         op = "and" if isinstance(node.op, _ast.And) else "or"
+        logging.info(f"in visit_BoolOp, op={op}, number_of_values={len(node.values)}")
         for i, value in enumerate(node.values):
             self.visit(value, new_line=False)
             if i + 1 != len(node.values):
                 self.print(f" {op} ")
 
     def visit_List(self, node):
+        logging.info(f"in visit_List")
         self.print("[")
         self.print(node.elts, _is_iterable=True, _use_visit=True)
         self.print("]")
 
     def visit_Dict(self, node):
+        logging.info(f"in visit_Dict")
         self.print("{")
         self.new_line()
         with self:
@@ -234,28 +271,34 @@ class Rewrite(ast.NodeVisitor):
         self.print("}")
 
     def visit_Tuple(self, node):
+        logging.info(f"in visit_Tuple")
         self.print("(")
         self.print(node.elts, _is_iterable=True, _use_visit=True)
         self.print(")")
 
     def visit_Pass(self, node):
+        logging.info(f"in visit_Pass")
         self.print("pass")
 
     def visit_Return(self, node):
+        logging.info(f"in visit_Return")
         self.print("return")
         if node.value:
             self.print(" ")
             self.visit(node.value, new_line=False)
 
     def visit_Global(self, node):
+        logging.info(f"in visit_Global")
         self.print("global ")
         self.print(node.names, _is_iterable=True)
 
     def visit_Nonlocal(self, node):
+        logging.info(f"in visit_Nonlocal")
         self.print("nonlocal ")
         self.print(node.names, _is_iterable=True)
 
     def visit_NamedExpr(self, node):
+        logging.info(f"in visit_NamedExpr")
         self.print("(")
         self.visit(node.target, new_line=False)
         self.print(f" := ")
@@ -263,12 +306,14 @@ class Rewrite(ast.NodeVisitor):
         self.print(")")
 
     def visit_Assign(self, node):
+        logging.info(f"in visit_Assign")
         for target in node.targets:
             self.visit(target, False)
             self.print(" = ")
         self.visit(node.value, False)
 
     def visit_Compare(self, node):
+        logging.info(f"in visit_Compare")
         ops = {
             _ast.Eq: "==",
             _ast.NotEq: "!=",
@@ -290,15 +335,18 @@ class Rewrite(ast.NodeVisitor):
                 self.print(" ")
 
     def visit_Subscript(self, node):
+        logging.info(f"in visit_Subscript")
         self.visit(node.value, new_line=False)
         self.visit(node.slice, new_line=False)
 
     def visit_Index(self, node):
+        logging.info(f"in visit_Index")
         self.print("[")
         self.visit(node.value, new_line=False)
         self.print("]")
 
     def visit_Slice(self, node):
+        logging.info(f"in visit_Slice")
         self.print("[")
         if node.lower:
             self.visit(node.lower, new_line=False)
@@ -311,6 +359,7 @@ class Rewrite(ast.NodeVisitor):
         self.print("]")
 
     def visit_Assert(self, node):
+        logging.info(f"in visit_Assert")
         self.print("assert ")
         self.visit(node.test, new_line=False)
         if node.msg:
@@ -318,6 +367,7 @@ class Rewrite(ast.NodeVisitor):
             self.visit(node.msg, new_line=False)
 
     def visit_keyword(self, node):
+        logging.info(f"in visit_keyword")
         if node.arg:
             self.print(f"{node.arg}=")
         else:
@@ -325,11 +375,13 @@ class Rewrite(ast.NodeVisitor):
         self.visit(node.value, new_line=False)
 
     def visit_Attribute(self, node):
+        logging.info(f"in visit_Attribute")
         self.visit(node.value, new_line=False)
         self.print(".")
         self.print(node.attr)
 
     def visit_Raise(self, node):
+        logging.info(f"in visit_Raise")
         self.print("raise")
         if node.exc:
             self.print(" ")
@@ -339,6 +391,7 @@ class Rewrite(ast.NodeVisitor):
             self.visit(node.cause, new_line=False)
 
     def visit_Try(self, node):
+        logging.info(f"in visit_Try")
         self.print("try:", _new_line=True)
         with self:
             self._visit_list(node.body)
@@ -355,6 +408,7 @@ class Rewrite(ast.NodeVisitor):
                 self._visit_list(node.finalbody, _new_line_at_finish=False)
 
     def visit_ExceptHandler(self, node):
+        logging.info(f"in visit_ExceptHandler")
         self.print("except")
         if node.type:
             self.print(" ")
@@ -366,10 +420,12 @@ class Rewrite(ast.NodeVisitor):
             self._visit_list(node.body, _new_line_at_finish=False)
 
     def visit_Starred(self, node):
+        logging.info(f"in visit_Starred")
         self.print("*")
         self.visit(node.value, new_line=False)
 
     def visit_arguments(self, node):
+        logging.info(f"in visit_arguments")
         ordered_only_pos, ordered_args = Rewrite._ordered_pos_arg_default(
             node.posonlyargs, node.args, node.defaults
         )
@@ -424,12 +480,14 @@ class Rewrite(ast.NodeVisitor):
             self.print(f", **{node.kwarg.arg}")
 
     def visit_withitem(self, node):
+        logging.info(f"in visit_withitem")
         self.visit(node.context_expr, new_line=False)
         if node.optional_vars:
             self.print(" as ")
             self.visit(node.optional_vars, new_line=False)
 
     def visit_With(self, node):
+        logging.info(f"in visit_With")
         self.print("with ")
         for i, element in enumerate(node.items):
             self.visit(element, new_line=False)
@@ -444,6 +502,7 @@ class Rewrite(ast.NodeVisitor):
                     self.visit(element, new_line=False)
 
     def visit_FunctionDef(self, node):
+        logging.info(f"in visit_FunctionDef")
         for decorator in node.decorator_list:
             self.print("@")
             self.visit(decorator)
@@ -463,6 +522,7 @@ class Rewrite(ast.NodeVisitor):
         self.new_line(1 if self.nested_scope[-1] else 2)
 
     def visit_ClassDef(self, node):
+        logging.info(f"in visit_ClassDef")
         for decorator in node.decorator_list:
             self.print("@")
             self.visit(decorator)
@@ -494,20 +554,24 @@ class Rewrite(ast.NodeVisitor):
         self.new_line(1 if self.nested_scope[-1] else 2)
 
     def visit_If(self, node):
+        logging.info(f"in visit_If")
         self.print("if ")
         self._block_flow(node=node, first_attr="test", is_if=True)
 
     def visit_While(self, node):
+        logging.info(f"in visit_While")
         self.print("while ")
         self._block_flow(node=node, first_attr="test")
 
     def visit_For(self, node):
+        logging.info(f"in visit_For")
         self.print("for ")
         self.visit(node.target, new_line=False)
         self.print(" in ")
         self._block_flow(node=node, first_attr="iter")
 
     def visit_Call(self, node):
+        logging.info(f"in visit_Call")
         self.visit(node.func, new_line=False)
         self.print("(")
         for i, arg in enumerate(node.args):
@@ -521,6 +585,7 @@ class Rewrite(ast.NodeVisitor):
         self.print(")")
 
     def visit_ListComp(self, node):
+        logging.info(f"in visit_ListComp")
         self.print("[")
         self.visit(node.elt, new_line=False)
         for generator in node.generators:
@@ -529,6 +594,7 @@ class Rewrite(ast.NodeVisitor):
         self.print("]")
 
     def visit_IfExp(self, node):
+        logging.info(f"in visit_IfExp")
         self.visit(node.body, new_line=False)
         self.print(" if ")
         self.visit(node.test, new_line=False)
@@ -536,6 +602,7 @@ class Rewrite(ast.NodeVisitor):
         self.visit(node.orelse, new_line=False)
 
     def visit_comprehension(self, node):
+        logging.info(f"in visit_comprehension")
         self.visit(node.target, new_line=False)
         self.print(" in ")
         self.visit(node.iter, new_line=False)
