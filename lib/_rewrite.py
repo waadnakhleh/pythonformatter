@@ -19,6 +19,12 @@ class Rewrite(ast.NodeVisitor):
         self.max_line = 88
         self.current_line_len = 0
         self.current_line = ""
+        # Latest node that starts a line (in body/function/class).
+        self.starting_new_line_node = None
+        # Are we managing a node that exceeds the limit.
+        self.long_node = False
+        # Is this the first node that is part of a long node.
+        self.first_long_node = False  # TODO name is not clear, choose better wording.
         self.ar_ops = {
             _ast.Add: "+",
             _ast.Sub: "-",
@@ -37,12 +43,12 @@ class Rewrite(ast.NodeVisitor):
 
     def __enter__(self):
         logging.info(f"Start indentation = {self.indentation + 4}")
-        self.indentation += 4
+        self.change_indentation(4)
         self.nested_scope.append(True)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         logging.info(f"Close indentation = {self.indentation - 4}")
-        self.indentation -= 4
+        self.change_indentation(-4)
         self.nested_scope.pop()
 
     def visit(self, node, new_line=True):
@@ -52,7 +58,7 @@ class Rewrite(ast.NodeVisitor):
         """
         method = "visit_" + node.__class__.__name__
         visitor = getattr(self, method, self.generic_visit)
-        logging.info(f"in visit(), visitor={visitor}")
+        logging.info(f"in visit(), visitor={visitor.__name__}")
         visitor_ = visitor(node)
         if new_line and not isinstance(node, ast.Module):
             self.new_line()
@@ -60,7 +66,7 @@ class Rewrite(ast.NodeVisitor):
 
     def generic_visit(self, node):
         """Called if no explicit visitor function exists for a node."""
-        logging.info(f"in generic_visit(), node={node}")
+        logging.info(f"in generic_visit(), node={type(node).__name__}")
         for field, value in ast.iter_fields(node):
             if isinstance(value, list):
                 for item in value:
@@ -133,25 +139,39 @@ class Rewrite(ast.NodeVisitor):
             to_print = self._prepare_line(
                 value, _new_line, _is_iterable, _special_attribute
             )
-            logging.debug(f"in print(), to_print={to_print}")
+            logging.debug(f"in print(), to_print='{to_print}'")
             self.current_line_len += len(to_print)
             self.current_line += to_print
-            logging.debug(f"current line={self.current_line}, line length={self.current_line_len}")
+            logging.debug(
+                f"current line={self.current_line}, line length={self.current_line_len}"
+            )
             if _new_line and self.current_line_len <= self.max_line:
                 file.write(self.current_line)
                 self.current_line_len = 0
                 self.current_line = ""
             elif _new_line:  # Exceeded line limitation
                 # TODO: Handle writing long lines properly
-                file.write(self.current_line)
-                logging.warning("Line exceeded limit")
-                self.current_line_len = 0
-                self.current_line = 0
+                self.check_line()
+
         elif _is_iterable and _use_visit:
             for i, item in enumerate(value):
                 self.visit(item, new_line=False)
                 if i + 1 != len(value):
                     self.print(", ")
+
+    def check_line(self):
+        """
+        Checks if the current line exceeded the max length, initializes the needed
+        variables to start a new line and calls the main node that starts the line.
+        If the node supports checking for long lines, it will be handled well, the
+        program will go into an endless recursion. TODO fix.
+        :return: None
+        """
+        if self.current_line_len > self.max_line:
+            logging.warning("Line exceeded limit")
+            self._init_values_for_long_line()
+            self.visit(self.starting_new_line_node, new_line=False)
+            self.long_node = False
 
     def new_line(self, num=1):
         [self.print("", _new_line=True) for _ in range(num)]
@@ -159,6 +179,7 @@ class Rewrite(ast.NodeVisitor):
     def visit_Module(self, node):
         logging.info("in visit_Module")
         for i, body_node in enumerate(node.body):
+            self.starting_new_line_node = body_node
             if i == 0 and ast.get_docstring(node):
                 self.visit_Constant(body_node.value, is_docstring=True)
             else:
@@ -196,13 +217,34 @@ class Rewrite(ast.NodeVisitor):
         self.visit(node.operand, False)
 
     def visit_BinOp(self, node):
-        logging.info(f"in visit_BinOp, left={node.left} op={self.ar_ops[type(node.op)]}, right={node.right}")
+        logging.info(
+            f"in visit_BinOp, left={type(node.left).__name__}, "
+            f"op={self.ar_ops[type(node.op)]}, right={type(node.right).__name__}"
+        )
+        first_recursive = False
+        if self.long_node:
+            if self.first_long_node:  # Starting node of the sequence of inner nodes.
+                self.print("(", _new_line=True)
+                self.first_long_node = False
+                self.change_indentation(4)
+                first_recursive = True
+            self.visit(node.left, new_line=False)
+            self.new_line()
+            self.print(f"{self.ar_ops[type(node.op)]} ")
+            self.visit(node.right, new_line=False)
+            if first_recursive:
+                self.change_indentation(-4)
+                self.new_line()
+                self.print(")", _new_line=True)
+            return
         self.visit(node.left, False)
         self.print(f" {self.ar_ops[type(node.op)]} ")
         self.visit(node.right, False)
 
     def visit_AugAssign(self, node):
-        logging.info(f"in visit_AugAssign, target={node.target} op={self.ar_ops[type(node.op)]}, value={node.value}")
+        logging.info(
+            f"in visit_AugAssign, target={node.target} op={self.ar_ops[type(node.op)]}, value={node.value}"
+        )
         self.visit(node.target, new_line=False)
         self.print(f" {self.ar_ops[type(node.op)]}= ")
         self.visit(node.value, new_line=False)
@@ -516,6 +558,7 @@ class Rewrite(ast.NodeVisitor):
             for i, element in enumerate(node.body):
                 if ast.get_docstring(node) and i == 0:
                     continue
+                self.starting_new_line_node = element
                 self.visit(element, new_line=i + 1 != len(node.body))
         if self.latest_class:
             return
@@ -549,6 +592,7 @@ class Rewrite(ast.NodeVisitor):
                     continue
                 if i + 1 == len(node.body):
                     self.latest_class = True
+                self.starting_new_line_node = element
                 self.visit(element, new_line=i + 1 != len(node.body))
                 self.latest_class = False
         self.new_line(1 if self.nested_scope[-1] else 2)
@@ -670,6 +714,20 @@ class Rewrite(ast.NodeVisitor):
                 else:
                     ordered_args[arg.arg] = []
         return ordered_only_pos, ordered_args
+
+    def change_indentation(self, value):
+        self.indentation += value
+
+    def _init_values_for_long_line(self):
+        """
+        Helper function to initialize all the needed variables in case of a long line.
+        :return:
+        """
+        self.current_line_len = 0
+        self.current_line = ""
+        self.in_new_line = True
+        self.long_node = True
+        self.first_long_node = True
 
 
 def rewrite(file_name: str):
