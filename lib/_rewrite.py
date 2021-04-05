@@ -1,6 +1,7 @@
 import ast
 import _ast
 import logging
+import _conf
 from _ast import AST
 from collections import OrderedDict
 
@@ -733,10 +734,14 @@ class Rewrite(ast.NodeVisitor):
 def rewrite(file_name: str):
     global file
     file = open("modified_file.py", "a")
+    my_conf = dict()
+    visitor = Rewrite()
+    # Parse configurations
+    _conf.Conf().set_configurations(my_conf, visitor)
     with open(file_name) as f:
         try:
             parsed = ast.parse(f.read(), file_name)  # the AST of the .py file
-            Rewrite().visit(parsed)
+            visitor.visit(parsed)
         except SyntaxError as e:
             raise e
         file.close()
