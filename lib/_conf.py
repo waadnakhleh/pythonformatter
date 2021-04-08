@@ -27,8 +27,26 @@ class Conf:
     def parse_arguments(argv, visitor):
         i = 0
         while i < len(argv):
-            if argv[i] == "--target-file":
-                visitor.target_file = argv[i+1]
-            elif argv[i] == "--max-line":
-                visitor.max_line = int(argv[i+1])
+            if argv[i] in ["--target-file", "-t"]:
+                visitor.target_file = argv[i + 1]
+            elif argv[i] in ["--max-line", "-ml"]:
+                visitor.max_line = int(argv[i + 1])
+            elif argv[i] in ["--help", "-h"]:
+                print_help()
+                exit(0)
             i += 1
+
+
+def print_help():
+    """
+    Displays help message
+    :return: None
+    """
+    print("Usage: [SRC] [OPTIONS]\n")
+    print("SRC:")
+    print(
+        "  -t, --target-file <target_file>       Specify the target file to be formatted\n"
+    )
+    print("OPTIONS:")
+    print("  -ml, --max-line <max_line>             Specify the maximum line length")
+    print("  -h, --help                        Display the help message")

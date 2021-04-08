@@ -14,7 +14,11 @@ Python Formatter works with Python 3.8 and under the guidelines of PEP8, but can
 ## Usage
 
 ```python
-python -m main.py --target-file <filename>
+python -m main --target-file <filename>
+```
+To see other command line arguments use the --help argument
+```python
+python -m main --help
 ```
 
 ## Contributing
