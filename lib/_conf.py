@@ -47,11 +47,30 @@ def print_help():
     Displays help message
     :return: None
     """
+    src = {
+        (
+            "-t",
+            "--target-file <target_file>",
+        ): "Specify the target file to be formatted",
+    }
+
+    options = {
+        ("-ml", "--max-line <max_line>"): "Specify the maximum line length",
+        ("-h", "--help"): "Display the help message",
+    }
     print("Usage: [SRC] [OPTIONS]\n")
     print("SRC:")
-    print(
-        "  -t, --target-file <target_file>       Specify the target file to be formatted\n"
-    )
+    print_section(src)
     print("OPTIONS:")
-    print("  -ml, --max-line <max_line>            Specify the maximum line length")
-    print("  -h, --help                            Display the help message")
+    print_section(options)
+
+
+def print_section(messages):
+    for key, value in messages.items():
+        short, long = key
+        message = f"  {short}, {long}"
+        assert len(messages) < 55, "argument too long"
+        spaces = 55 - len(message)
+        message += " " * spaces
+        message += value
+        print(message)
