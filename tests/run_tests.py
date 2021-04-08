@@ -2,6 +2,7 @@ import filecmp
 import os
 import pytest
 import _rewrite
+import main
 
 
 def confirm(output):
@@ -21,15 +22,16 @@ def confirm(output):
         open(compare_to, "w").close()  # Empty file
 
 
-def make_test(input_file, output_file):
-    _rewrite.rewrite(input_file)
+def make_test(input_file, output_file, max_line=88):
+    main.main("--target-file", input_file, "--max-line", max_line)
     confirm(output_file)
     _rewrite.file = open("modified_file.py", "a")
 
 
 def test_syntax_error():
     with pytest.raises(SyntaxError):
-        _rewrite.rewrite("syntax_error/file.py")
+        input_file = "syntax_error/file.py"
+        main.main("--target-file", input_file)
 
 
 def test_import():
@@ -216,3 +218,8 @@ def test_dict():
 def test_general():
     input_file, output_file = "test_general/input.py", "test_general/output.py"
     make_test(input_file, output_file)
+
+
+def test_command_line_args():
+    input_file, output_file = "test_command_line_args/input.py", "test_command_line_args/output.py"
+    make_test(input_file, output_file, max_line=100)

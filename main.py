@@ -1,11 +1,12 @@
+import sys
+sys.path.append("lib")
 import _rewrite
 
 
-def main():
+def main(*argv):
     # User must insert file name
-    file_name = input()
-    _rewrite.rewrite(file_name)
+    _rewrite.rewrite(*argv)
 
 
 if __name__ == "__main__":
-    main()
+    main(*sys.argv)

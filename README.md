@@ -14,9 +14,7 @@ Python Formatter works with Python 3.8 and under the guidelines of PEP8, but can
 ## Usage
 
 ```python
-import _rewrite
-
-_rewrite.rewrite(file_name)
+python -m main.py --target-file <filename>
 ```
 
 ## Contributing

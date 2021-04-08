@@ -22,6 +22,9 @@ class Rewrite(ast.NodeVisitor):
         self.current_line = ""
         # Latest node that starts a line (in body/function/class).
         self.starting_new_line_node = None
+        self.direct_file = True
+        self.target_file = ""
+
         # Are we managing a node that exceeds the limit.
         self.long_node = False
         # Is this the first node that is part of a long node.
@@ -731,16 +734,25 @@ class Rewrite(ast.NodeVisitor):
         self.first_long_node = True
 
 
-def rewrite(file_name: str):
+def start():
+    my_conf = dict()
+    visitor = Rewrite()
+    # Parse configurations
+    _conf.Conf().set_configurations(my_conf, visitor)
+
+
+def rewrite(*argv):
     global file
     file = open("modified_file.py", "a")
     my_conf = dict()
     visitor = Rewrite()
     # Parse configurations
-    _conf.Conf().set_configurations(my_conf, visitor)
-    with open(file_name) as f:
+    configurations = _conf.Conf()
+    configurations.set_configurations(my_conf, visitor)
+    configurations.parse_arguments(argv, visitor)
+    with open(visitor.target_file) as f:
         try:
-            parsed = ast.parse(f.read(), file_name)  # the AST of the .py file
+            parsed = ast.parse(f.read(), visitor.target_file)  # the AST of the .py file
             visitor.visit(parsed)
         except SyntaxError as e:
             raise e
