@@ -223,3 +223,8 @@ def test_general():
 def test_command_line_args():
     input_file, output_file = "test_command_line_args/input.py", "test_command_line_args/output.py"
     make_test(input_file, output_file, max_line=100)
+
+
+def test_bad_arguments():
+    with pytest.raises(ValueError, match="unknown argument --unsupported-argument"):
+        main.main("--target-file", "input_file", "--unsupported-argument", "")

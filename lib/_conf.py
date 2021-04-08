@@ -29,11 +29,16 @@ class Conf:
         while i < len(argv):
             if argv[i] in ["--target-file", "-t"]:
                 visitor.target_file = argv[i + 1]
+                i += 1
             elif argv[i] in ["--max-line", "-ml"]:
                 visitor.max_line = int(argv[i + 1])
+                i += 1
             elif argv[i] in ["--help", "-h"]:
                 print_help()
                 exit(0)
+            else:
+                if i != 0:
+                    raise ValueError(f"unknown argument {argv[i]}.")
             i += 1
 
 
@@ -48,5 +53,5 @@ def print_help():
         "  -t, --target-file <target_file>       Specify the target file to be formatted\n"
     )
     print("OPTIONS:")
-    print("  -ml, --max-line <max_line>             Specify the maximum line length")
-    print("  -h, --help                        Display the help message")
+    print("  -ml, --max-line <max_line>            Specify the maximum line length")
+    print("  -h, --help                            Display the help message")
