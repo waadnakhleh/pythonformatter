@@ -6,6 +6,7 @@ if a - 100 == b:
     a = (b := 10)
 else:
     b = 100
+    pass
 if a > b:
     a = 7
     b = 3

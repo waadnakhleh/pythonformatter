@@ -1,7 +1,7 @@
 import ast
 import _ast
 import logging
-import _conf
+from lib import _conf
 from _ast import AST
 from collections import OrderedDict
 
@@ -72,15 +72,7 @@ class Rewrite(ast.NodeVisitor):
         """Called if no explicit visitor function exists for a node."""
         logging.info(f"in generic_visit(), node={type(node).__name__}")
         for field, value in ast.iter_fields(node):
-            if isinstance(value, list):
-                for item in value:
-                    if isinstance(item, AST):
-                        if isinstance(node, _ast.Module):
-                            self.visit(item)
-                        else:
-                            self.visit(item, False)
-            elif isinstance(value, AST):
-                self.visit(value, False)
+            self.visit(value, False)
 
     def _prepare_line(self, value, _new_line, _is_iterable, _special_attribute):
         """
@@ -732,13 +724,6 @@ class Rewrite(ast.NodeVisitor):
         self.in_new_line = True
         self.long_node = True
         self.first_long_node = True
-
-
-def start():
-    my_conf = dict()
-    visitor = Rewrite()
-    # Parse configurations
-    _conf.Conf().set_configurations(my_conf, visitor)
 
 
 def rewrite(*argv):

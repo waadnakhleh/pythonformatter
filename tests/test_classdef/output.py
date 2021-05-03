@@ -12,3 +12,10 @@ class YetAnotherClass(AnotherOne, metaclass=MyDecorator):
 
 
 a = YetAnotherClass()
+
+
+class MyClass(AnotherOne, MyDecorator, metaclass=YetAnotherClass, private=True):
+    pass
+
+
+b = MyClass()

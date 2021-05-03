@@ -1,7 +1,8 @@
 import filecmp
 import os
+import pathlib
 import pytest
-import _rewrite
+from lib import _rewrite
 import main
 
 
@@ -15,7 +16,9 @@ def confirm(output):
                 os.mkdir("logs")
             lines = f.readlines()
             lines = [l for l in lines]
-            with open(f"logs/log_{output[:len(output)-len('/output.py')]}.py", "w") as f1:
+            with open(
+                f"logs/log_{output[:len(output)-len('/output.py')]}.py", "w"
+            ) as f1:
                 f1.writelines(lines)
         raise e
     finally:
@@ -23,6 +26,8 @@ def confirm(output):
 
 
 def make_test(input_file, output_file, max_line=88):
+    input_file = pathlib.Path(__file__).parent.absolute().joinpath(input_file)
+    output_file = pathlib.Path(__file__).parent.absolute().joinpath(output_file)
     main.main("--target-file", input_file, "--max-line", max_line)
     confirm(output_file)
     _rewrite.file = open("modified_file.py", "a")
@@ -31,6 +36,7 @@ def make_test(input_file, output_file, max_line=88):
 def test_syntax_error():
     with pytest.raises(SyntaxError):
         input_file = "syntax_error/file.py"
+        input_file = pathlib.Path(__file__).parent.absolute().joinpath(input_file)
         main.main("--target-file", input_file)
 
 
@@ -196,7 +202,7 @@ def test_subscript():
 
 
 def test_listcomp():
-    input_file, output_file = "test_subscript/input.py", "test_subscript/output.py"
+    input_file, output_file = "test_listcomp/input.py", "test_listcomp/output.py"
     make_test(input_file, output_file)
 
 
@@ -221,7 +227,10 @@ def test_general():
 
 
 def test_command_line_args():
-    input_file, output_file = "test_command_line_args/input.py", "test_command_line_args/output.py"
+    input_file, output_file = (
+        "test_command_line_args/input.py",
+        "test_command_line_args/output.py",
+    )
     make_test(input_file, output_file, max_line=100)
 
 
