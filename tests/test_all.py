@@ -237,3 +237,12 @@ def test_command_line_args():
 def test_bad_arguments():
     with pytest.raises(ValueError, match="unknown argument --unsupported-argument"):
         main.main("--target-file", "input_file", "--unsupported-argument", "")
+
+
+def test_bad_max_line_length():
+    input_file, output_file = (
+        "test_command_line_args/input.py",
+        "test_command_line_args/output.py",
+    )
+    with pytest.raises(RecursionError, match="check maximum line length"):
+        make_test(input_file, output_file, max_line=30)

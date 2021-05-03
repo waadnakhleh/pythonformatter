@@ -741,6 +741,12 @@ def rewrite(*argv):
             visitor.visit(parsed)
         except SyntaxError as e:
             raise e
+        except RecursionError:
+            message = (
+                "maximum recursion depth exceeded while calling a Python object"
+                ", check maximum line length"
+            )
+            raise RecursionError(message)
         file.close()
 
 
