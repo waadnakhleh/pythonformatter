@@ -44,4 +44,4 @@ We follow the set of rules provided by PEP8. But since we run black on the code 
 3. [Useful article about Python ast module](https://medium.com/@kamneemaran45/python-ast-5789a1b60300)
 
 ## License
-We don't really have a license. If we ever compete with other code formatters it will be MIT.
+MIT
