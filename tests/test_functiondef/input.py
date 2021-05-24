@@ -33,4 +33,8 @@ def bar(pos_only_arg,
 def foo_bar(arg1="quick "
                  "brown fox", *, arg2=False):
     pass
+
+def my_new_long_function_is_finally_here(first_argument, second_argument=None, *, argument=False, **kwargs):
+    pass
+
 my_new_func(10, 3, d=3)

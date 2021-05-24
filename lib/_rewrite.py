@@ -467,19 +467,24 @@ class Rewrite(ast.NodeVisitor):
         ordered_only_pos, ordered_args = Rewrite._ordered_pos_arg_default(
             node.posonlyargs, node.args, node.defaults
         )
+        comma = "," + (" " if not self.long_node else "")
+        if self.long_node:
+            self.__enter__()
+            self.new_line()
         for i, (key, value) in enumerate(ordered_only_pos.items()):
             self.print(key)
             if value:
                 self.print(f"=")
                 self.visit(value[0], new_line=False)
             if i + 1 != len(ordered_only_pos):
-                self.print(", ")
+                self.print(comma, _new_line=self.long_node)
             else:
-                self.print(", /")
+                self.print(comma, _new_line=self.long_node)
+                self.print("/", _new_line=self.long_node)
         if ordered_only_pos and (
             ordered_args or node.vararg or node.kwonlyargs or node.kwarg
         ):
-            self.print(", ")
+            self.print(comma, _new_line=self.long_node)
         for i, (key, value) in enumerate(ordered_args.items()):
             self.print(key)
             if value:
@@ -491,7 +496,7 @@ class Rewrite(ast.NodeVisitor):
                 or node.kwonlyargs
                 or node.kwarg
             ):
-                self.print(", ")
+                self.print(comma, _new_line=self.long_node)
         if (ordered_args or ordered_only_pos) and (
             node.vararg or node.kwonlyargs or node.kwarg
         ):
@@ -501,9 +506,10 @@ class Rewrite(ast.NodeVisitor):
                 self.print("*")
             self.print(f"{node.vararg.arg}")
         elif not (ordered_args or ordered_only_pos) and (node.kwonlyargs or node.kwarg):
-            self.print("*, ")
+            self.print("*")
+            self.print(comma, _new_line=self.long_node)
         if (ordered_args or ordered_only_pos) and (node.kwonlyargs or node.kwarg):
-            self.print(", ")
+            self.print(comma, _new_line=self.long_node)
         for i, item in enumerate(node.kwonlyargs):
             self.print(item.arg)
             if node.kw_defaults:
@@ -511,11 +517,14 @@ class Rewrite(ast.NodeVisitor):
                     self.print("=")
                     self.visit(node.kw_defaults[i], new_line=False)
             if i + 1 != len(node.kwonlyargs):
-                self.print(", ")
+                self.print(comma, _new_line=self.long_node)
         if (
             ordered_args or ordered_only_pos or node.vararg or node.kwonlyargs
         ) and node.kwarg:
-            self.print(f", **{node.kwarg.arg}")
+            self.print(comma, _new_line=self.long_node)
+            self.print(f"**{node.kwarg.arg}")
+        if self.long_node:
+            self.__exit__(None, None, None)
 
     def visit_withitem(self, node):
         logging.info(f"in visit_withitem")
@@ -547,7 +556,12 @@ class Rewrite(ast.NodeVisitor):
         self.print(f"def {node.name}(")
         if node.args:
             self.visit(node.args, new_line=False)
+        if self.long_node:
+            self.new_line()
         self.print("):", _new_line=True)
+        if self.long_node:
+            # Note that if the function continues, the body will be printed twice.
+            return
         with self:
             if ast.get_docstring(node):
                 self.visit_Constant(node.body[0].value, is_docstring=True)
