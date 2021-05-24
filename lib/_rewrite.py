@@ -1,6 +1,7 @@
 import ast
 import _ast
 import logging
+import filecmp
 from lib import _conf
 from _ast import AST
 from collections import OrderedDict
@@ -20,6 +21,9 @@ class Rewrite(ast.NodeVisitor):
         self.max_line = 88
         self.current_line_len = 0
         self.current_line = ""
+        # If check_only is set to True, the software only checks whether the code is
+        # properly formatter or not.
+        self.check_only = False
         # Latest node that starts a line (in body/function/class).
         self.starting_new_line_node = None
         self.direct_file = True
@@ -762,6 +766,8 @@ def rewrite(*argv):
             )
             raise RecursionError(message)
         file.close()
-
+        if visitor.check_only:
+            exit(not filecmp.cmp(visitor.target_file, "modified_file.py"))
+        return 0
 
 file = None
