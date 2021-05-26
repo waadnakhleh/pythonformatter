@@ -28,7 +28,7 @@ class Rewrite(ast.NodeVisitor):
         self.starting_new_line_node = None
         self.direct_file = True
         self.target_file = ""
-
+        self.last_node = False
         # Are we managing a node that exceeds the limit.
         self.long_node = False
         # Is this the first node that is part of a long node.
@@ -180,9 +180,11 @@ class Rewrite(ast.NodeVisitor):
         logging.info("in visit_Module")
         for i, body_node in enumerate(node.body):
             self.starting_new_line_node = body_node
-            if i == 0 and ast.get_docstring(node):
+            if i == 0 and ast.get_docstring(node):  # Docstring
                 self.visit_Constant(body_node.value, is_docstring=True)
             else:
+                if i + 1 == len(node.body):
+                    self.last_node = True
                 self.visit(body_node)
             if (
                 i + 1 != len(node.body)
@@ -576,7 +578,8 @@ class Rewrite(ast.NodeVisitor):
                 self.visit(element, new_line=i + 1 != len(node.body))
         if self.latest_class:
             return
-        self.new_line(1 if self.nested_scope[-1] else 2)
+        if not self.last_node:
+            self.new_line(1 if self.nested_scope[-1] else 2)
 
     def visit_ClassDef(self, node):
         logging.info(f"in visit_ClassDef")
@@ -609,7 +612,8 @@ class Rewrite(ast.NodeVisitor):
                 self.starting_new_line_node = element
                 self.visit(element, new_line=i + 1 != len(node.body))
                 self.latest_class = False
-        self.new_line(1 if self.nested_scope[-1] else 2)
+        if not self.last_node:
+            self.new_line(1 if self.nested_scope[-1] else 2)
 
     def visit_If(self, node):
         logging.info(f"in visit_If")
@@ -769,5 +773,6 @@ def rewrite(*argv):
         if visitor.check_only:
             exit(not filecmp.cmp(visitor.target_file, "modified_file.py"))
         return 0
+
 
 file = None
