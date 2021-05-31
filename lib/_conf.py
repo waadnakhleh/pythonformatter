@@ -20,6 +20,8 @@ class Conf:
             visitor.target_file = os.path.join(parent_dir, "file.py")
         elif str(conf_dict["CHECK_ONLY"]) == "TRUE":
             visitor.check_only = True
+        elif str(conf_dict["SPACE_BETWEEN_ARGUMENTS"] == "TRUE"):
+            visitor.space_between_arguments = True
         else:
             pass
         visitor.direct_file = conf_dict["DIRECT_FILE"]
@@ -39,6 +41,8 @@ class Conf:
                 exit(0)
             elif argv[i] in ["--check-only", "-c"]:
                 visitor.check_only = True
+            elif argv[i] in ["--space-between-arguments"]:
+                visitor.space_between_arguments = True
             else:
                 if i != 0:
                     raise ValueError(f"unknown argument {argv[i]}.")
@@ -61,6 +65,10 @@ def print_help():
         ("-ml", "--max-line <max_line>"): "Specify the maximum line length",
         ("-h", "--help"): "Display the help message",
         ("-c", "--check-only"): "Use this option to check if your code is formatted",
+        (
+            "",
+            "--space-between-arguments",
+        ): "Use spaces between arguments with default values",
     }
     print("Usage: [SRC] [OPTIONS]\n")
     print("SRC:")
@@ -72,7 +80,7 @@ def print_help():
 def print_section(messages):
     for key, value in messages.items():
         short, long = key
-        message = f"  {short}, {long}"
+        message = f"  {short}, {long}" if short else f"  {long}"
         assert len(messages) < 55, "argument too long"
         spaces = 55 - len(message)
         message += " " * spaces

@@ -33,6 +33,7 @@ class Rewrite(ast.NodeVisitor):
         self.long_node = False
         # Is this the first node that is part of a long node.
         self.first_long_node = False  # TODO name is not clear, choose better wording.
+        self.space_between_arguments = False
         self.ar_ops = {
             _ast.Add: "+",
             _ast.Sub: "-",
@@ -413,7 +414,7 @@ class Rewrite(ast.NodeVisitor):
     def visit_keyword(self, node):
         logging.info(f"in visit_keyword")
         if node.arg:
-            self.print(f"{node.arg}=")
+            self.print(f"{node.arg}" + (" = " if self.space_between_arguments else f"="))
         else:
             self.print(f"**")
         self.visit(node.value, new_line=False)
@@ -480,7 +481,7 @@ class Rewrite(ast.NodeVisitor):
         for i, (key, value) in enumerate(ordered_only_pos.items()):
             self.print(key)
             if value:
-                self.print(f"=")
+                self.print(" = " if self.space_between_arguments else "=")
                 self.visit(value[0], new_line=False)
             if i + 1 != len(ordered_only_pos):
                 self.print(comma, _new_line=self.long_node)
@@ -494,7 +495,7 @@ class Rewrite(ast.NodeVisitor):
         for i, (key, value) in enumerate(ordered_args.items()):
             self.print(key)
             if value:
-                self.print(f"=")
+                self.print(" = " if self.space_between_arguments else "=")
                 self.visit(value[0], new_line=False)
             if (
                 i + 1 != len(ordered_args)
@@ -520,7 +521,7 @@ class Rewrite(ast.NodeVisitor):
             self.print(item.arg)
             if node.kw_defaults:
                 if node.kw_defaults[0] is not None:
-                    self.print("=")
+                    self.print(" = " if self.space_between_arguments else "=")
                     self.visit(node.kw_defaults[i], new_line=False)
             if i + 1 != len(node.kwonlyargs):
                 self.print(comma, _new_line=self.long_node)
@@ -587,14 +588,16 @@ class Rewrite(ast.NodeVisitor):
             self.print("@")
             self.visit(decorator)
         self.print(f"class {node.name}")
-        if node.bases:
+        if node.bases or node.keywords:
             self.print("(")
+        if node.bases:
             for i, base in enumerate(node.bases):
                 self.visit(base, new_line=False)
                 if i + 1 != len(node.bases):
                     self.print(", ")
+            if node.keywords:
+                self.print(", ")
         if node.keywords:
-            self.print(", ")
             for i, keyword in enumerate(node.keywords):
                 self.visit(keyword, new_line=False)
                 if i + 1 != len(node.keywords):

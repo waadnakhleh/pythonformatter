@@ -25,10 +25,18 @@ def confirm(output):
         open(compare_to, "w").close()  # Empty file
 
 
-def make_test(input_file, output_file, max_line=88):
+def make_test(input_file, output_file, max_line=88, space_between_arguments=False):
     input_file = pathlib.Path(__file__).parent.absolute().joinpath(input_file)
     output_file = pathlib.Path(__file__).parent.absolute().joinpath(output_file)
-    main.main("--target-file", input_file, "--max-line", max_line)
+    if space_between_arguments:
+        main.main(
+            "--target-file",
+            input_file,
+            "--max-line",
+            max_line,
+            "--space-between-arguments")
+    else:
+        main.main("--target-file", input_file, "--max-line", max_line)
     confirm(output_file)
     _rewrite.file = open("modified_file.py", "a")
 
@@ -246,3 +254,11 @@ def test_bad_max_line_length():
     )
     with pytest.raises(RecursionError, match="check maximum line length"):
         make_test(input_file, output_file, max_line=30)
+
+
+def test_space_arguments():
+    input_file, output_file = (
+        "test_space_arguments/input.py",
+        "test_space_arguments/output.py",
+    )
+    make_test(input_file, output_file, max_line=100, space_between_arguments=True)
