@@ -3,7 +3,6 @@ import _ast
 import logging
 import filecmp
 from lib import _conf
-from _ast import AST
 from collections import OrderedDict
 
 
@@ -14,26 +13,7 @@ from collections import OrderedDict
 
 class Rewrite(ast.NodeVisitor):
     def __init__(self):
-        self.indentation = 0
-        self.in_new_line = True
-        self.nested_scope = [False]
-        self.latest_class = False
-        self.max_line = 88
-        self.current_line_len = 0
-        self.current_line = ""
-        # If check_only is set to True, the software only checks whether the code is
-        # properly formatter or not.
-        self.check_only = False
-        # Latest node that starts a line (in body/function/class).
-        self.starting_new_line_node = None
-        self.direct_file = True
-        self.target_file = ""
-        self.last_node = False
-        # Are we managing a node that exceeds the limit.
-        self.long_node = False
-        # Is this the first node that is part of a long node.
-        self.first_long_node = False  # TODO name is not clear, choose better wording.
-        self.space_between_arguments = False
+        # The equivalent of each ast node and its symbol.
         self.ar_ops = {
             _ast.Add: "+",
             _ast.Sub: "-",
@@ -49,13 +29,62 @@ class Rewrite(ast.NodeVisitor):
             _ast.BitAnd: "&",
             _ast.FloorDiv: "//",
         }
+        # Line length.
+        self.current_line_len = 0
+        # Content of the current line.
+        self.current_line = ""
+        # If check_only is set to True, the software only checks whether the code is
+        # properly formatter or not.
+        self.check_only = False
+        # If set to True, only one target will be reformatted, otherwise, the system
+        # will look for all Python files in directory to reformat.  TODO finish.
+        self.direct_file = True
+        # Is this the first node that is part of a long node.
+        self.first_long_node = False  # TODO name is not clear, choose better wording.
+        # Space indentation in any given moment.
+        self.indentation = 0
+        # True if the system is starting a new line, False otherwise.
+        self.in_new_line = True
+        # True if the system is handling the last node in Module, False otherwise.
+        self.last_node = False
+        # True if the the system is handling the last node in a class body, False
+        # otherwise.
+        self.latest_class = False
+        # Are we managing a node that exceeds the limit.
+        self.long_node = False
+        # Max line length, default value is 88 according to PEP8.
+        self.max_line = 88
+        # A list of boolean values to express the indentation/nested levels.
+        # The default value is a list containing a single False value which translates
+        # to global scope, with each new scope, True will be inserted and later popped
+        # when the scope ends.
+        # Todo: Implementation should be incremental to decrease time/space complexity.
+        self.nested_scope = [False]
+        # Print spaces between arguments with default values/keywords and their values
+        # if set to True, otherwise, the equal sign will be right next the keyword and
+        # the value.
+        self.space_between_arguments = False
+        # Latest node that starts a line (in body/function/class).
+        self.starting_new_line_node = None
+        # The path of the file to be formatter.
+        # Note that target_file will be empty if and only if direct_file is also set to
+        # True.
+        self.target_file = ""
 
     def __enter__(self):
+        """
+        Called when starting a nested scope, e.g. Functions body.
+        Note that this function is called automatically when using "with" statement.
+        """
         logging.info(f"Start indentation = {self.indentation + 4}")
         self.change_indentation(4)
         self.nested_scope.append(True)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """
+        Called to close a scope, e.g. the end of a functions body.
+        Note that this function is called automatically when using "with" statement.
+        """
         logging.info(f"Close indentation = {self.indentation - 4}")
         self.change_indentation(-4)
         self.nested_scope.pop()
@@ -66,8 +95,10 @@ class Rewrite(ast.NodeVisitor):
         start a new line between each body element.
         """
         method = "visit_" + node.__class__.__name__
+        # Get the visit_Class method, if not found, return generic_visit() method.
         visitor = getattr(self, method, self.generic_visit)
         logging.info(f"in visit(), visitor={visitor.__name__}")
+        # Call the visitor function
         visitor_ = visitor(node)
         if new_line and not isinstance(node, ast.Module):
             self.new_line()
@@ -90,11 +121,12 @@ class Rewrite(ast.NodeVisitor):
         """
         to_print = ""
         if _new_line and not value:
+            # Finish current line or start a new one.
             to_print = "\n"
             self.in_new_line = True
             return to_print
         if self.in_new_line:
-            to_print = " " * self.indentation  # Prepare indentation first.
+            to_print = " " * self.indentation
             self.in_new_line = False
         if _is_iterable:
             assert hasattr(value, "__iter__")  # Make sure the item is iterable.
@@ -185,31 +217,56 @@ class Rewrite(ast.NodeVisitor):
                 self.visit_Constant(body_node.value, is_docstring=True)
             else:
                 if i + 1 == len(node.body):
+                    # Mark the last node in module.
                     self.last_node = True
                 self.visit(body_node)
             if (
                 i + 1 != len(node.body)
-                and isinstance(node.body[i + 1], (_ast.FunctionDef, _ast.ClassDef))
                 and not isinstance(node.body[i], (_ast.FunctionDef, _ast.ClassDef))
+                and isinstance(node.body[i + 1], (_ast.FunctionDef, _ast.ClassDef))
             ):
+                # If the current node is not a definition node and the next node is a
+                # definition node, print two empty lines.
+                # TODO: Make it customizable.
                 self.new_line(2)
 
     def visit_Import(self, node):
+        """
+        Implements import statements, prints each import in an independent line.
+        :param node: _ast.Import node.
+        :return: None
+        """
         logging.info(f"in visit_Import")
         imports_list = node.names
         for i, name in enumerate(imports_list):
+            # TODO: Allow printing multiple imports in a single line if specifically specified.
             self.print(
                 f"import {name.name}",
                 _new_line=True if i + 1 != len(imports_list) else False,
             )
 
     def visit_ImportFrom(self, node):
+        """
+        Implements import from statements, prints all imports from specific library
+        in a single line.
+        :param node: _ast.ImportFrom node
+        :return: None
+        """
         logging.info(f"in visit_ImportFrom")
         import_list = node.names
+        # Note that if the user wrote multiple import from statements using the same
+        # library more than once, these import from lines won't be joined together as
+        # the software should not change the order of the code.
+        # TODO: Allow choosing whether to join multiple import from statements.
         self.print(f"from {node.module} import ")
         self.print(import_list, _is_iterable=True, _special_attribute="name")
 
     def visit_UnaryOp(self, node):
+        """
+        Implements the unary operators ["not, "~", "+", "-"].
+        :param node: _ast.UnaryOp node.
+        :return: None
+        """
         ops = {_ast.Not: "not", ast.Invert: "~", ast.UAdd: "+", ast.USub: "-"}
         op = ops[type(node.op)]
         logging.info(f"in visit_UnaryOp, op={op}, operand={node.operand}")
@@ -220,6 +277,11 @@ class Rewrite(ast.NodeVisitor):
         self.visit(node.operand, False)
 
     def visit_BinOp(self, node):
+        """
+        Implements the Binary operators.
+        :param node: _ast.BinOp node.
+        :return: None.
+        """
         logging.info(
             f"in visit_BinOp, left={type(node.left).__name__}, "
             f"op={self.ar_ops[type(node.op)]}, right={type(node.right).__name__}"
