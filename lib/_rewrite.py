@@ -54,6 +54,8 @@ class Rewrite(ast.NodeVisitor):
         self.long_node = False
         # Max line length, default value is 88 according to PEP8.
         self.max_line = 88
+        # Allow importing multiples modules in a single line
+        self.multiple_imports = False
         # Scope level that indicates the indentation/nested levels.
         # The starting value is zero which translates to global scope, with each new
         # scope, the value will be incremented later decremented when the scope ends.
@@ -236,8 +238,15 @@ class Rewrite(ast.NodeVisitor):
         """
         logging.info(f"in visit_Import")
         imports_list = node.names
+        if self.multiple_imports:
+            self.print("import ")
+            for i, name in enumerate(imports_list):
+                self.print(name.name)
+                if i + 1 != len(imports_list):
+                    self.print(", ")
+            return
+
         for i, name in enumerate(imports_list):
-            # TODO: Allow printing multiple imports in a single line if specifically specified.
             self.print(
                 f"import {name.name}",
                 _new_line=True if i + 1 != len(imports_list) else False,
@@ -475,7 +484,9 @@ class Rewrite(ast.NodeVisitor):
     def visit_keyword(self, node):
         logging.info(f"in visit_keyword")
         if node.arg:
-            self.print(f"{node.arg}" + (" = " if self.space_between_arguments else f"="))
+            self.print(
+                f"{node.arg}" + (" = " if self.space_between_arguments else f"=")
+            )
         else:
             self.print(f"**")
         self.visit(node.value, new_line=False)

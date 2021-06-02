@@ -25,7 +25,13 @@ def confirm(output):
         open(compare_to, "w").close()  # Empty file
 
 
-def make_test(input_file, output_file, max_line=88, space_between_arguments=False):
+def make_test(
+    input_file,
+    output_file,
+    max_line=88,
+    space_between_arguments=False,
+    multiple_imports=False,
+):
     input_file = pathlib.Path(__file__).parent.absolute().joinpath(input_file)
     output_file = pathlib.Path(__file__).parent.absolute().joinpath(output_file)
     if space_between_arguments:
@@ -34,7 +40,12 @@ def make_test(input_file, output_file, max_line=88, space_between_arguments=Fals
             input_file,
             "--max-line",
             max_line,
-            "--space-between-arguments")
+            "--space-between-arguments",
+        )
+    elif multiple_imports:
+        main.main(
+            "--target-file", input_file, "--max-line", max_line, "--multiple-imports"
+        )
     else:
         main.main("--target-file", input_file, "--max-line", max_line)
     confirm(output_file)
@@ -262,3 +273,11 @@ def test_space_arguments():
         "test_space_arguments/output.py",
     )
     make_test(input_file, output_file, max_line=100, space_between_arguments=True)
+
+
+def test_multiple_imports():
+    input_file, output_file = (
+        "test_multiple_imports/input.py",
+        "test_multiple_imports/output.py",
+    )
+    make_test(input_file, output_file, multiple_imports=True)

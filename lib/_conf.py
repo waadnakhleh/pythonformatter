@@ -18,12 +18,12 @@ class Conf:
         if str(conf_dict["DIRECT_FILE"]) == "TRUE":
             visitor.direct_file = True
             visitor.target_file = os.path.join(parent_dir, "file.py")
-        elif str(conf_dict["CHECK_ONLY"]) == "TRUE":
+        if str(conf_dict["CHECK_ONLY"]) == "TRUE":
             visitor.check_only = True
-        elif str(conf_dict["SPACE_BETWEEN_ARGUMENTS"] == "TRUE"):
+        if str(conf_dict["SPACE_BETWEEN_ARGUMENTS"]) == "TRUE":
             visitor.space_between_arguments = True
-        else:
-            pass
+        if str(conf_dict["MULTIPLE_IMPORTS"]) == "TRUE":
+            visitor.multiple_imports = True
         visitor.direct_file = conf_dict["DIRECT_FILE"]
 
     @staticmethod
@@ -43,6 +43,8 @@ class Conf:
                 visitor.check_only = True
             elif argv[i] in ["--space-between-arguments"]:
                 visitor.space_between_arguments = True
+            elif argv[i] in ["--multiple-imports", "-mi"]:
+                visitor.multiple_imports = True
             else:
                 if i != 0:
                     raise ValueError(f"unknown argument {argv[i]}.")
@@ -69,6 +71,10 @@ def print_help():
             "",
             "--space-between-arguments",
         ): "Use spaces between arguments with default values",
+        (
+            "-mi",
+            "--multiple-imports",
+        ): "Allow importing multiples modules in a single line",
     }
     print("Usage: [SRC] [OPTIONS]\n")
     print("SRC:")
