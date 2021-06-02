@@ -31,23 +31,16 @@ def make_test(
     max_line=88,
     space_between_arguments=False,
     multiple_imports=False,
+    vertical_definition_lines=2
 ):
     input_file = pathlib.Path(__file__).parent.absolute().joinpath(input_file)
     output_file = pathlib.Path(__file__).parent.absolute().joinpath(output_file)
+    args = ("--target-file", input_file, "--max-line", max_line, "--vertical-definition-lines", vertical_definition_lines)
     if space_between_arguments:
-        main.main(
-            "--target-file",
-            input_file,
-            "--max-line",
-            max_line,
-            "--space-between-arguments",
-        )
-    elif multiple_imports:
-        main.main(
-            "--target-file", input_file, "--max-line", max_line, "--multiple-imports"
-        )
-    else:
-        main.main("--target-file", input_file, "--max-line", max_line)
+        args = args + ("--space-between-arguments",)
+    if multiple_imports:
+        args = args + ("--multiple-imports",)
+    main.main(*args)
     confirm(output_file)
     _rewrite.file = open("modified_file.py", "a")
 
@@ -281,3 +274,11 @@ def test_multiple_imports():
         "test_multiple_imports/output.py",
     )
     make_test(input_file, output_file, multiple_imports=True)
+
+
+def test_vertical_definition_lines():
+    input_file, output_file = (
+        "test_vertical_definition_lines/input.py",
+        "test_vertical_definition_lines/output.py",
+    )
+    make_test(input_file, output_file, vertical_definition_lines=3)

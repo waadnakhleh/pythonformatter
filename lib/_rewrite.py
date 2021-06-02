@@ -70,6 +70,8 @@ class Rewrite(ast.NodeVisitor):
         # Note that target_file will be empty if and only if direct_file is also set to
         # True.
         self.target_file = ""
+        # Number of empty lines between class/function definitions
+        self.vertical_definition_lines = 2
 
     def __enter__(self):
         """
@@ -228,7 +230,7 @@ class Rewrite(ast.NodeVisitor):
                 # If the current node is not a definition node and the next node is a
                 # definition node, print two empty lines.
                 # TODO: Make it customizable.
-                self.new_line(2)
+                self.new_line(self.vertical_definition_lines)
 
     def visit_Import(self, node):
         """
@@ -652,7 +654,7 @@ class Rewrite(ast.NodeVisitor):
         if self.latest_class:
             return
         if not self.last_node:
-            self.new_line(1 if self.nested_scope else 2)
+            self.new_line(1 if self.nested_scope else self.vertical_definition_lines)
 
     def visit_ClassDef(self, node):
         logging.info(f"in visit_ClassDef")
@@ -688,7 +690,7 @@ class Rewrite(ast.NodeVisitor):
                 self.visit(element, new_line=i + 1 != len(node.body))
                 self.latest_class = False
         if not self.last_node:
-            self.new_line(1 if self.nested_scope else 2)
+            self.new_line(1 if self.nested_scope else self.vertical_definition_lines)
 
     def visit_If(self, node):
         logging.info(f"in visit_If")

@@ -15,6 +15,7 @@ class Conf:
                 conf_dict[key] = value.split("\n")[0]
 
         visitor.max_line = int(conf_dict["MAX_LINE"])
+        visitor.vertical_definition_lines = int(conf_dict["VERTICAL_DEFINITION_LINES"])
         if str(conf_dict["DIRECT_FILE"]) == "TRUE":
             visitor.direct_file = True
             visitor.target_file = os.path.join(parent_dir, "file.py")
@@ -30,21 +31,24 @@ class Conf:
     def parse_arguments(argv, visitor):
         i = 0
         while i < len(argv):
-            if argv[i] in ["--target-file", "-t"]:
+            if argv[i] in ["-t", "--target-file"]:
                 visitor.target_file = argv[i + 1]
                 i += 1
-            elif argv[i] in ["--max-line", "-ml"]:
+            elif argv[i] in ["-ml", "--max-line"]:
                 visitor.max_line = int(argv[i + 1])
                 i += 1
-            elif argv[i] in ["--help", "-h"]:
-                print_help()
-                exit(0)
-            elif argv[i] in ["--check-only", "-c"]:
+            elif argv[i] in ["-vdl", "--vertical-definition-lines"]:
+                visitor.vertical_definition_lines = int(argv[i + 1])
+                i += 1
+            elif argv[i] in ["-c", "--check-only"]:
                 visitor.check_only = True
             elif argv[i] in ["--space-between-arguments"]:
                 visitor.space_between_arguments = True
-            elif argv[i] in ["--multiple-imports", "-mi"]:
+            elif argv[i] in ["-mi", "--multiple-imports"]:
                 visitor.multiple_imports = True
+            elif argv[i] in ["-h", "--help"]:
+                print_help()
+                exit(0)
             else:
                 if i != 0:
                     raise ValueError(f"unknown argument {argv[i]}.")
@@ -75,6 +79,10 @@ def print_help():
             "-mi",
             "--multiple-imports",
         ): "Allow importing multiples modules in a single line",
+        (
+            "-vdl",
+            "--vertical-definition-lines <number>",
+        ): "Number of empty lines between definitions",
     }
     print("Usage: [SRC] [OPTIONS]\n")
     print("SRC:")
