@@ -228,8 +228,7 @@ class Rewrite(ast.NodeVisitor):
                 and isinstance(node.body[i + 1], (_ast.FunctionDef, _ast.ClassDef))
             ):
                 # If the current node is not a definition node and the next node is a
-                # definition node, print two empty lines.
-                # TODO: Make it customizable.
+                # definition node, add <vertical_definition_lines> empty lines.
                 self.new_line(self.vertical_definition_lines)
 
     def visit_Import(self, node):
