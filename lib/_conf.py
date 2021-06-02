@@ -16,6 +16,7 @@ class Conf:
 
         visitor.max_line = int(conf_dict["MAX_LINE"])
         visitor.vertical_definition_lines = int(conf_dict["VERTICAL_DEFINITION_LINES"])
+        visitor.nested_lines = int(conf_dict["NESTED_LINES"])
         if str(conf_dict["DIRECT_FILE"]) == "TRUE":
             visitor.direct_file = True
             visitor.target_file = os.path.join(parent_dir, "file.py")
@@ -36,6 +37,9 @@ class Conf:
                 i += 1
             elif argv[i] in ["-ml", "--max-line"]:
                 visitor.max_line = int(argv[i + 1])
+                i += 1
+            elif argv[i] in ["-nl", "--nested-lines"]:
+                visitor.nested_lines = int(argv[i + 1])
                 i += 1
             elif argv[i] in ["-vdl", "--vertical-definition-lines"]:
                 visitor.vertical_definition_lines = int(argv[i + 1])
@@ -68,17 +72,21 @@ def print_help():
     }
 
     options = {
-        ("-ml", "--max-line <max_line>"): "Specify the maximum line length",
-        ("-h", "--help"): "Display the help message",
         ("-c", "--check-only"): "Use this option to check if your code is formatted",
-        (
-            "",
-            "--space-between-arguments",
-        ): "Use spaces between arguments with default values",
+        ("-h", "--help"): "Display the help message",
+        ("-ml", "--max-line <max_line>"): "Specify the maximum line length",
         (
             "-mi",
             "--multiple-imports",
         ): "Allow importing multiples modules in a single line",
+        (
+            "-nl",
+            "--nested-lines <lines>",
+        ): "Specify number of empty lines between nested definitions",
+        (
+            "",
+            "--space-between-arguments",
+        ): "Use spaces between arguments with default values",
         (
             "-vdl",
             "--vertical-definition-lines <number>",

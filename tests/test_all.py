@@ -31,11 +31,21 @@ def make_test(
     max_line=88,
     space_between_arguments=False,
     multiple_imports=False,
-    vertical_definition_lines=2
+    vertical_definition_lines=2,
+    nested_lines=1,
 ):
     input_file = pathlib.Path(__file__).parent.absolute().joinpath(input_file)
     output_file = pathlib.Path(__file__).parent.absolute().joinpath(output_file)
-    args = ("--target-file", input_file, "--max-line", max_line, "--vertical-definition-lines", vertical_definition_lines)
+    args = (
+        "--target-file",
+        input_file,
+        "--max-line",
+        max_line,
+        "--vertical-definition-lines",
+        vertical_definition_lines,
+        "--nested-lines",
+        nested_lines,
+    )
     if space_between_arguments:
         args = args + ("--space-between-arguments",)
     if multiple_imports:
@@ -282,3 +292,11 @@ def test_vertical_definition_lines():
         "test_vertical_definition_lines/output.py",
     )
     make_test(input_file, output_file, vertical_definition_lines=3)
+
+
+def test_nested_lines():
+    input_file, output_file = (
+        "test_nested_lines/input.py",
+        "test_nested_lines/output.py",
+    )
+    make_test(input_file, output_file, nested_lines=3)

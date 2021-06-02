@@ -56,6 +56,8 @@ class Rewrite(ast.NodeVisitor):
         self.max_line = 88
         # Allow importing multiples modules in a single line
         self.multiple_imports = False
+        # Number of empty lines between nested function/class definitions
+        self.nested_lines = 1
         # Scope level that indicates the indentation/nested levels.
         # The starting value is zero which translates to global scope, with each new
         # scope, the value will be incremented later decremented when the scope ends.
@@ -653,7 +655,11 @@ class Rewrite(ast.NodeVisitor):
         if self.latest_class:
             return
         if not self.last_node:
-            self.new_line(1 if self.nested_scope else self.vertical_definition_lines)
+            self.new_line(
+                self.nested_lines
+                if self.nested_scope
+                else self.vertical_definition_lines
+            )
 
     def visit_ClassDef(self, node):
         logging.info(f"in visit_ClassDef")
@@ -689,7 +695,11 @@ class Rewrite(ast.NodeVisitor):
                 self.visit(element, new_line=i + 1 != len(node.body))
                 self.latest_class = False
         if not self.last_node:
-            self.new_line(1 if self.nested_scope else self.vertical_definition_lines)
+            self.new_line(
+                self.nested_lines
+                if self.nested_scope
+                else self.vertical_definition_lines
+            )
 
     def visit_If(self, node):
         logging.info(f"in visit_If")
