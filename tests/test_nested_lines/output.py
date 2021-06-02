@@ -19,3 +19,8 @@ def foo():
 
 
 foo()
+
+
+def foo():
+    def bar():
+        pass

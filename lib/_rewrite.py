@@ -29,6 +29,13 @@ class Rewrite(ast.NodeVisitor):
             _ast.BitAnd: "&",
             _ast.FloorDiv: "//",
         }
+        # List which holds data about the nested body of a function, each item in the
+        # list contains a tuple, the first value stores the node of the function, and
+        # the second value holds a boolean value which indicates whether the nested
+        # function is the last item in the body.
+        # Note that in case of a function which does not include any nested function
+        # declaration, the list will hold a tuple containing None values (None, None).
+        self.last_body_node = []
         # Line length.
         self.current_line_len = 0
         # Content of the current line.
@@ -644,6 +651,8 @@ class Rewrite(ast.NodeVisitor):
         if self.long_node:
             # Note that if the function continues, the body will be printed twice.
             return
+        self.last_body_node.append(self._get_latest_definition_node(node.body))
+
         with self:
             if ast.get_docstring(node):
                 self.visit_Constant(node.body[0].value, is_docstring=True)
@@ -654,7 +663,14 @@ class Rewrite(ast.NodeVisitor):
                 self.visit(element, new_line=i + 1 != len(node.body))
         if self.latest_class:
             return
-        if not self.last_node:
+        self.last_body_node.pop()
+        if (not self.last_node) or (
+            self.nested_scope
+            and (node != self.last_body_node[-1][0] or not self.last_body_node[-1][1])
+        ):
+            # After each function new empty lines should be printed, unless the node is
+            # the last node (which applies to both module-level scope and nested
+            # functions.
             self.new_line(
                 self.nested_lines
                 if self.nested_scope
@@ -832,6 +848,20 @@ class Rewrite(ast.NodeVisitor):
         self.in_new_line = True
         self.long_node = True
         self.first_long_node = True
+
+    @staticmethod
+    def _get_latest_definition_node(body):
+        """
+        Detects and returns the last function/class definition in a list of nodes and
+        whether the function/class definition is the last item in the body.
+        :param body: list of nodes.
+        :return: Tuple containing the last definition and whether its the last item in
+                 body.
+        """
+        for i, node in enumerate(reversed(body)):
+            if isinstance(node, (_ast.ClassDef, _ast.FunctionDef)):
+                return node, i == 0
+        return None, None
 
 
 def rewrite(*argv):
