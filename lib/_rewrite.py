@@ -54,12 +54,10 @@ class Rewrite(ast.NodeVisitor):
         self.long_node = False
         # Max line length, default value is 88 according to PEP8.
         self.max_line = 88
-        # A list of boolean values to express the indentation/nested levels.
-        # The default value is a list containing a single False value which translates
-        # to global scope, with each new scope, True will be inserted and later popped
-        # when the scope ends.
-        # Todo: Implementation should be incremental to decrease time/space complexity.
-        self.nested_scope = [False]
+        # Scope level that indicates the indentation/nested levels.
+        # The starting value is zero which translates to global scope, with each new
+        # scope, the value will be incremented later decremented when the scope ends.
+        self.nested_scope = 0
         # Print spaces between arguments with default values/keywords and their values
         # if set to True, otherwise, the equal sign will be right next the keyword and
         # the value.
@@ -78,7 +76,7 @@ class Rewrite(ast.NodeVisitor):
         """
         logging.info(f"Start indentation = {self.indentation + 4}")
         self.change_indentation(4)
-        self.nested_scope.append(True)
+        self.nested_scope += 1
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """
@@ -87,7 +85,7 @@ class Rewrite(ast.NodeVisitor):
         """
         logging.info(f"Close indentation = {self.indentation - 4}")
         self.change_indentation(-4)
-        self.nested_scope.pop()
+        self.nested_scope -= 1
 
     def visit(self, node, new_line=True):
         """
@@ -197,7 +195,7 @@ class Rewrite(ast.NodeVisitor):
         Checks if the current line exceeded the max length, initializes the needed
         variables to start a new line and calls the main node that starts the line.
         If the node supports checking for long lines, it will be handled well, the
-        program will go into an endless recursion. TODO fix.
+        program will go into an endless recursion.
         :return: None
         """
         if self.current_line_len > self.max_line:
@@ -643,7 +641,7 @@ class Rewrite(ast.NodeVisitor):
         if self.latest_class:
             return
         if not self.last_node:
-            self.new_line(1 if self.nested_scope[-1] else 2)
+            self.new_line(1 if self.nested_scope else 2)
 
     def visit_ClassDef(self, node):
         logging.info(f"in visit_ClassDef")
@@ -679,7 +677,7 @@ class Rewrite(ast.NodeVisitor):
                 self.visit(element, new_line=i + 1 != len(node.body))
                 self.latest_class = False
         if not self.last_node:
-            self.new_line(1 if self.nested_scope[-1] else 2)
+            self.new_line(1 if self.nested_scope else 2)
 
     def visit_If(self, node):
         logging.info(f"in visit_If")
