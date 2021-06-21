@@ -9,7 +9,7 @@ from collections import OrderedDict
 
 # Remove the following comment to see print log on stdout.
 # To see more detailed logging, change level to logging.DEBUG.
-logging.getLogger().setLevel(logging.INFO)
+# logging.getLogger().setLevel(logging.INFO)
 
 
 class Rewrite(ast.NodeVisitor):
