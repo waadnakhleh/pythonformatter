@@ -26,13 +26,21 @@ class Conf:
             visitor.space_between_arguments = True
         if str(conf_dict["MULTIPLE_IMPORTS"]) == "TRUE":
             visitor.multiple_imports = True
+        if str(conf_dict["DIRECTORY"]) == "TRUE":
+            assert (
+                not visitor.direct_file
+            ), "cannot use directory with direct_file = True"
         visitor.direct_file = conf_dict["DIRECT_FILE"]
 
     @staticmethod
     def parse_arguments(argv, visitor):
         i = 0
         while i < len(argv):
-            if argv[i] in ["-t", "--target-file"]:
+            if argv[i] in ["-d", "--directory"]:
+                visitor.direct_file = False
+                visitor.directory = argv[i + 1]
+                i += 1
+            elif argv[i] in ["-t", "--target-file"]:
                 visitor.target_file = argv[i + 1]
                 i += 1
             elif argv[i] in ["-ml", "--max-line"]:
@@ -65,6 +73,10 @@ def print_help():
     :return: None
     """
     src = {
+        (
+            "-d",
+            "--directory <directory_path>",
+        ): "Reformat all python files in directory",
         (
             "-t",
             "--target-file <target_file>",

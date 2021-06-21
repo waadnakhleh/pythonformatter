@@ -2,6 +2,7 @@ import ast
 import _ast
 import logging
 import filecmp
+import search
 from lib import _conf
 from collections import OrderedDict
 
@@ -46,8 +47,15 @@ class Rewrite(ast.NodeVisitor):
         # If set to True, only one target will be reformatted, otherwise, the system
         # will look for all Python files in directory to reformat.  TODO finish.
         self.direct_file = True
+        # The full path of a directory which includes python files to be reformatted,
+        # if provided, the system will search recursively for all the python files
+        # in the directory and its sub-directories.
+        self.directory = None
         # Is this the first node that is part of a long node.
         self.first_long_node = False  # TODO name is not clear, choose better wording.
+        # List containing all the python files that needs to be reformatted.
+        # Note that this list will be used only when using --directory argument.
+        self.files = []
         # Space indentation in any given moment.
         self.indentation = 0
         # True if the system is starting a new line, False otherwise.
@@ -864,18 +872,21 @@ class Rewrite(ast.NodeVisitor):
         return None, None
 
 
-def rewrite(*argv):
+def reformat(visitor):
     global file
-    file = open("modified_file.py", "a")
-    my_conf = dict()
-    visitor = Rewrite()
-    # Parse configurations
-    configurations = _conf.Conf()
-    configurations.set_configurations(my_conf, visitor)
-    configurations.parse_arguments(argv, visitor)
-    with open(visitor.target_file) as f:
+    for target_file in visitor.files:
+        with open(target_file) as f:
+            # Parse the python files and extract the AST.
+            parsed = ast.parse(f.read(), target_file)
+        if visitor.directory is not None:
+            # When using a directory, reformat the original file.
+            file = open(target_file, "+r")
+        else:
+            # When using direct file, dump the newly reformatted code in
+            # "modified_file.py".
+            file = open("modified_file.py", "a")
         try:
-            parsed = ast.parse(f.read(), visitor.target_file)  # the AST of the .py file
+            # Rewrite the code by using the AST.
             visitor.visit(parsed)
         except SyntaxError as e:
             raise e
@@ -885,10 +896,26 @@ def rewrite(*argv):
                 ", check maximum line length"
             )
             raise RecursionError(message)
+
         file.close()
         if visitor.check_only:
-            exit(not filecmp.cmp(visitor.target_file, "modified_file.py"))
-        return 0
+            exit(not filecmp.cmp(target_file, "modified_file.py"))
+    return 0
+
+
+def rewrite(*argv):
+    my_conf = dict()
+    visitor = Rewrite()
+    # Parse configurations
+    configurations = _conf.Conf()
+    configurations.set_configurations(my_conf, visitor)
+    configurations.parse_arguments(argv, visitor)
+    if visitor.directory is not None:
+        # Find all python files in the directory and its sub-directories.
+        search.walk(visitor.directory, visitor.files)
+    else:
+        visitor.files = [visitor.target_file]
+    return reformat(visitor)
 
 
 file = None
