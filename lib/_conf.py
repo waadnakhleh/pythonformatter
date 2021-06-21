@@ -11,6 +11,9 @@ class Conf:
         with open(os.path.join(parent_dir, "conf.txt")) as f:
             lines = f.readlines()
             for line in lines:
+                if line[0] == "#":
+                    # If the leading char in the line is "#", treat it as a comment.
+                    continue
                 key, value = line.split("=")
                 conf_dict[key] = value.split("\n")[0]
 
@@ -30,6 +33,12 @@ class Conf:
             assert (
                 not visitor.direct_file
             ), "cannot use directory with direct_file = True"
+
+        # Get all suffixes and remove leading and ending whitespaces.
+        suffixes = conf_dict["SUFFIXES"].split(",")
+        for suffix in suffixes:
+            visitor.allowed_suffixes.append(suffix.strip())
+
         visitor.direct_file = conf_dict["DIRECT_FILE"]
 
     @staticmethod

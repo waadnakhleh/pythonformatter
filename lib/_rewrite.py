@@ -9,11 +9,14 @@ from collections import OrderedDict
 
 # Remove the following comment to see print log on stdout.
 # To see more detailed logging, change level to logging.DEBUG.
-# logging.getLogger().setLevel(logging.INFO)
+logging.getLogger().setLevel(logging.INFO)
 
 
 class Rewrite(ast.NodeVisitor):
     def __init__(self):
+        # Allowed file suffixes when using search by directory, the default suffix
+        # contains .py suffix only and can be added through the conf.txt file.
+        self.allowed_suffixes = []
         # The equivalent of each ast node and its symbol.
         self.ar_ops = {
             _ast.Add: "+",
@@ -912,7 +915,11 @@ def rewrite(*argv):
     configurations.parse_arguments(argv, visitor)
     if visitor.directory is not None:
         # Find all python files in the directory and its sub-directories.
-        search.walk(visitor.directory, visitor.files)
+        search.walk(
+            root_directory=visitor.directory,
+            files_list=visitor.files,
+            suffixes=visitor.allowed_suffixes,
+        )
     else:
         visitor.files = [visitor.target_file]
     return reformat(visitor)
