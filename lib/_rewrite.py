@@ -2,7 +2,7 @@ import ast
 import _ast
 import logging
 import filecmp
-import search
+import _search
 from lib import _conf
 from collections import OrderedDict
 
@@ -915,7 +915,7 @@ def rewrite(*argv):
     configurations.parse_arguments(argv, visitor)
     if visitor.directory is not None:
         # Find all python files in the directory and its sub-directories.
-        search.walk(
+        _search.walk(
             root_directory=visitor.directory,
             files_list=visitor.files,
             suffixes=visitor.allowed_suffixes,
