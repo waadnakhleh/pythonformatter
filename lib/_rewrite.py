@@ -2,10 +2,12 @@ import ast
 import _ast
 import logging
 import filecmp
+import os
 import _search
 from lib import _conf
 from collections import OrderedDict
-
+from shutil import copyfile
+from _exceptions import NoSolutionError
 
 # Remove the following comment to see print log on stdout.
 # To see more detailed logging, change level to logging.DEBUG.
@@ -33,20 +35,16 @@ class Rewrite(ast.NodeVisitor):
             _ast.BitAnd: "&",
             _ast.FloorDiv: "//",
         }
-        # List which holds data about the nested body of a function, each item in the
-        # list contains a tuple, the first value stores the node of the function, and
-        # the second value holds a boolean value which indicates whether the nested
-        # function is the last item in the body.
-        # Note that in case of a function which does not include any nested function
-        # declaration, the list will hold a tuple containing None values (None, None).
-        self.last_body_node = []
+        # Path of the configuration file, the default value is conf.txt but can be
+        # by using -cfg or --configuration option.
+        self.configuration_file = "conf.txt"
+        # If check_only is set to True, the software only checks whether the code is
+        # properly formatter or not.
+        self.check_only = False
         # Line length.
         self.current_line_len = 0
         # Content of the current line.
         self.current_line = ""
-        # If check_only is set to True, the software only checks whether the code is
-        # properly formatter or not.
-        self.check_only = False
         # If set to True, only one target will be reformatted, otherwise, the system
         # will look for all Python files in directory to reformat.  TODO finish.
         self.direct_file = True
@@ -63,6 +61,13 @@ class Rewrite(ast.NodeVisitor):
         self.indentation = 0
         # True if the system is starting a new line, False otherwise.
         self.in_new_line = True
+        # List which holds data about the nested body of a function, each item in the
+        # list contains a tuple, the first value stores the node of the function, and
+        # the second value holds a boolean value which indicates whether the nested
+        # function is the last item in the body.
+        # Note that in case of a function which does not include any nested function
+        # declaration, the list will hold a tuple containing None values (None, None).
+        self.last_body_node = []
         # True if the system is handling the last node in Module, False otherwise.
         self.last_node = False
         # True if the the system is handling the last node in a class body, False
@@ -876,6 +881,11 @@ class Rewrite(ast.NodeVisitor):
 
 
 def reformat(visitor):
+    """
+    Rewrites all the given files.
+    :param visitor: Rewrite() object, containing all the necessary configurations.
+    :return: 0 if no changes are needed, 1 otherwise.
+    """
     global file
     for target_file in visitor.files:
         with open(target_file) as f:
@@ -886,11 +896,15 @@ def reformat(visitor):
             file = open(target_file, "+r")
         else:
             # When using direct file, dump the newly reformatted code in
-            # "modified_file.py".
-            file = open("modified_file.py", "a")
+            # temporary file
+            # TODO Change this behaviour before release
+            reformatted_file = "modified_file.py"
+            file = open(reformatted_file, "a")
         try:
             # Rewrite the code by using the AST.
             visitor.visit(parsed)
+        # Files with SyntaxErrors cannot be reformatted as parsing the AST tree of
+        # these files is not possible.
         except SyntaxError as e:
             raise e
         except RecursionError:
@@ -898,23 +912,34 @@ def reformat(visitor):
                 "maximum recursion depth exceeded while calling a Python object"
                 ", check maximum line length"
             )
-            raise RecursionError(message)
+            raise NoSolutionError(message)
 
         file.close()
         if visitor.check_only:
             exit(not filecmp.cmp(target_file, "modified_file.py"))
+        # Delete the file in case we're in pytest environment
+        elif "PYTEST_CURRENT_TEST" not in os.environ:
+            copyfile(reformatted_file, target_file)
+            os.remove(reformatted_file)
     return 0
 
 
 def rewrite(*argv):
-    my_conf = dict()
     visitor = Rewrite()
-    # Parse configurations
     configurations = _conf.Conf()
-    configurations.set_configurations(my_conf, visitor)
+    # Set the configurations according to the configuration file
+    configurations.set_configurations(visitor)
+    # Parse the arguments that were given by the command line.
+    # Note that these arguments override the default configuration file conf.txt
+    # Note that if a configuration file was given (aside from the default conf.txt
+    # file), it will override the configurations that were given by the command line
+    # arguments.
     configurations.parse_arguments(argv, visitor)
+    # If a directory was given, find all the files that need to be formatted in the
+    # directory and its sub-directories.
+    # Note that these files does not have to be Python files only since additional
+    # suffixes could be given by the user.
     if visitor.directory is not None:
-        # Find all python files in the directory and its sub-directories.
         _search.walk(
             root_directory=visitor.directory,
             files_list=visitor.files,
@@ -922,6 +947,8 @@ def rewrite(*argv):
         )
     else:
         visitor.files = [visitor.target_file]
+    # Return the exit code this is useful for CI/CD procedure, and particularly when
+    # using --check-only argument.
     return reformat(visitor)
 
 

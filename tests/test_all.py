@@ -3,6 +3,7 @@ import os
 import pathlib
 import pytest
 from lib import _rewrite
+from _exceptions import NoSolutionError
 import main
 
 
@@ -266,7 +267,7 @@ def test_bad_max_line_length():
         "test_command_line_args/input.py",
         "test_command_line_args/output.py",
     )
-    with pytest.raises(RecursionError, match="check maximum line length"):
+    with pytest.raises(NoSolutionError, match="check maximum line length"):
         make_test(input_file, output_file, max_line=30)
 
 

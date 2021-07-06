@@ -7,8 +7,9 @@ parent_dir = pathlib.Path(current_dir).parent
 
 class Conf:
     @staticmethod
-    def set_configurations(conf_dict, visitor):
-        with open(os.path.join(parent_dir, "conf.txt")) as f:
+    def set_configurations(visitor):
+        conf_dict = dict()
+        with open(os.path.join(parent_dir, visitor.configuration_file)) as f:
             lines = f.readlines()
             for line in lines:
                 if line[0] == "#":
@@ -16,36 +17,43 @@ class Conf:
                     continue
                 key, value = line.split("=")
                 conf_dict[key] = value.split("\n")[0]
-
-        visitor.max_line = int(conf_dict["MAX_LINE"])
-        visitor.vertical_definition_lines = int(conf_dict["VERTICAL_DEFINITION_LINES"])
-        visitor.nested_lines = int(conf_dict["NESTED_LINES"])
-        if str(conf_dict["DIRECT_FILE"]) == "TRUE":
+        if conf_dict.get("MAX_LINE"):
+            visitor.max_line = int(conf_dict["MAX_LINE"])
+        if conf_dict.get("VERTICAL_DEFINITION_LINES"):
+            visitor.vertical_definition_lines = int(conf_dict["VERTICAL_DEFINITION_LINES"])
+        if conf_dict.get("NESTED_LINES"):
+            visitor.nested_lines = int(conf_dict["NESTED_LINES"])
+        if str(conf_dict.get("DIRECT_FILE")) == "TRUE":
             visitor.direct_file = True
             visitor.target_file = os.path.join(parent_dir, "file.py")
-        if str(conf_dict["CHECK_ONLY"]) == "TRUE":
+        if str(conf_dict.get("CHECK_ONLY")) == "TRUE":
             visitor.check_only = True
-        if str(conf_dict["SPACE_BETWEEN_ARGUMENTS"]) == "TRUE":
+        if str(conf_dict.get("SPACE_BETWEEN_ARGUMENTS")) == "TRUE":
             visitor.space_between_arguments = True
-        if str(conf_dict["MULTIPLE_IMPORTS"]) == "TRUE":
+        if str(conf_dict.get("MULTIPLE_IMPORTS")) == "TRUE":
             visitor.multiple_imports = True
-        if str(conf_dict["DIRECTORY"]) == "TRUE":
+        if str(conf_dict.get("DIRECTORY")) == "TRUE":
             assert (
                 not visitor.direct_file
             ), "cannot use directory with direct_file = True"
+        if conf_dict.get("DIRECTORY"):
+            visitor.direct_file = conf_dict["DIRECT_FILE"]
 
         # Get all suffixes and remove leading and ending whitespaces.
-        suffixes = conf_dict["SUFFIXES"].split(",")
-        for suffix in suffixes:
-            visitor.allowed_suffixes.append(suffix.strip())
-
-        visitor.direct_file = conf_dict["DIRECT_FILE"]
+        if conf_dict.get("SUFFIXES"):
+            suffixes = conf_dict["SUFFIXES"].split(",")
+            for suffix in suffixes:
+                visitor.allowed_suffixes.append(suffix.strip())
 
     @staticmethod
     def parse_arguments(argv, visitor):
         i = 0
         while i < len(argv):
-            if argv[i] in ["-d", "--directory"]:
+            if argv[i] in ["-cfg", "--configuration"]:
+                visitor.configuration_file = argv[i + 1]
+                Conf.set_configurations(visitor)
+                i += 1
+            elif argv[i] in ["-d", "--directory"]:
                 visitor.direct_file = False
                 visitor.directory = argv[i + 1]
                 i += 1
@@ -93,9 +101,22 @@ def print_help():
     }
 
     options = {
-        ("-c", "--check-only"): "Use this option to check if your code is formatted",
-        ("-h", "--help"): "Display the help message",
-        ("-ml", "--max-line <max_line>"): "Specify the maximum line length",
+        (
+            "-c",
+            "--check-only"
+        ): "Use this option to check if your code is formatted",
+        (
+            "-cfg",
+            "--configuration <configuration file>"
+        ): "Use this option to provide a configuration file",
+        (
+            "-h",
+            "--help"
+        ): "Display the help message",
+        (
+            "-ml",
+            "--max-line <max_line>"
+        ): "Specify the maximum line length",
         (
             "-mi",
             "--multiple-imports",
