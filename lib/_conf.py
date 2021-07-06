@@ -8,13 +8,20 @@ parent_dir = pathlib.Path(current_dir).parent
 class Conf:
     @staticmethod
     def set_configurations(visitor):
+        """
+        Sets the configurations of the visitor by using a configuration file.
+        :param visitor: Rewrite node.
+        :return: None
+        """
         conf_dict = dict()
+        # Read configuration file.
         with open(os.path.join(parent_dir, visitor.configuration_file)) as f:
             lines = f.readlines()
             for line in lines:
+                # If the leading char in the line is "#", treat it as a comment.
                 if line[0] == "#":
-                    # If the leading char in the line is "#", treat it as a comment.
                     continue
+                # Split key and value by the equal sign.
                 key, value = line.split("=")
                 conf_dict[key] = value.split("\n")[0]
         if conf_dict.get("MAX_LINE"):
@@ -49,6 +56,12 @@ class Conf:
 
     @staticmethod
     def parse_arguments(argv, visitor):
+        """
+        Parses command line arguments and sets the visitor's variables accordingly.
+        :param argv: Command line arguments that were given by the user.
+        :param visitor: Rewrite node.
+        :return: None.
+        """
         i = 0
         while i < len(argv):
             if argv[i] in ["-cfg", "--configuration"]:
@@ -135,6 +148,12 @@ def print_help():
 
 
 def print_section(messages):
+    """
+    Prints the selections of the help message on stdout.
+    :param messages: A dictionary containing short, long, and description of each
+                    supported argument.
+    :return: None
+    """
     for key, value in messages.items():
         short, long = key
         message = f"  {short}, {long}" if short else f"  {long}"

@@ -16,6 +16,9 @@ from _exceptions import NoSolutionError
 
 class Rewrite(ast.NodeVisitor):
     def __init__(self):
+        """
+        Initializes all the object's variables.
+        """
         # Allowed file suffixes when using search by directory, the default suffix
         # contains .py suffix only and can be added through the conf.txt file.
         self.allowed_suffixes = []
@@ -234,6 +237,7 @@ class Rewrite(ast.NodeVisitor):
             self.long_node = False
 
     def new_line(self, num=1):
+        """Prints <num> new line(s)"""
         logging.debug(f"printing {num} new line")
         [self.print("", _new_line=True) for _ in range(num)]
 
@@ -342,6 +346,11 @@ class Rewrite(ast.NodeVisitor):
         self.visit(node.right, False)
 
     def visit_AugAssign(self, node):
+        """
+        Implements the augmented assignments (e.g., a += 10)
+        :param node: _ast.AugAssign node
+        :return: None
+        """
         logging.info(
             f"in visit_AugAssign, target={node.target} op={self.ar_ops[type(node.op)]}, value={node.value}"
         )
@@ -350,34 +359,68 @@ class Rewrite(ast.NodeVisitor):
         self.visit(node.value, new_line=False)
 
     def visit_Constant(self, node, is_docstring=False):
+        """
+        Implements the Constants.
+        Note that the constants could be from multiple types like str, int.
+        Note that the constant could be a docstring.
+        :param node: _ast.Constant.
+        :param is_docstring: True if the constant is a docstring false otherwise.
+        :return: None
+        """
         if is_docstring:
             logging.info(f"in visit_Constant, visiting docstring")
         else:
             logging.info(f"in visit_Constant, value={node.value}")
-        if isinstance(node.value, str):
-            self.print('"')
-            if is_docstring:
-                self.print('""')
+        if isinstance(node.value, str) and not is_docstring:
+            # If the constant is a string, add quotes as a prefix.
+            # If the code contains double quotes, use single quotes.
+            self.print('"' if '"' not in node.value else "'")
+        elif is_docstring:
+            # If the constant is a docstring, add triple quotes as a prefix.
+            self.print('"""')
         self.print(node.value)
-        if isinstance(node.value, str):
-            self.print('"')
-            if is_docstring:
-                self.print('""')
-                self.new_line()
+        if isinstance(node.value, str) and not is_docstring:
+            # If the constant is a string, add quotes as a suffix.
+            # If the code contains double quotes, use single quotes.
+            self.print('"' if '"' not in node.value else "'")
+        elif is_docstring:
+            # If the constant is a docstring, add triple quotes as a suffix.
+            self.print('"""')
+            self.new_line()
 
     def visit_Name(self, node):
+        """
+        Implements name (identifiers).
+        :param node: _ast.Name.
+        :return: None.
+        """
         logging.info(f"in visit_Name, node.id={node.id}")
         self.print(node.id)
 
     def visit_Continue(self, node):
+        """
+        Implements Continue.
+        :param node: _ast.Continue.
+        :return: None.
+        """
         logging.info(f"in visit_Continue")
         self.print("continue")
 
     def visit_Break(self, node):
+        """
+        Implements break.
+        :param node: _ast.Break.
+        :return: None.
+        """
         logging.info(f"in visit_Break")
         self.print("break")
 
     def visit_Delete(self, node):
+        """
+        Implements Delete.
+        :param node: _ast.Delete.
+        :return: None
+        """
         logging.info(f"in visit_Delete")
         self.print("del ")
         for i, target in enumerate(node.targets):
@@ -386,6 +429,12 @@ class Rewrite(ast.NodeVisitor):
                 self.print(", ")
 
     def visit_BoolOp(self, node):
+        """
+        Implements the boolean operators "and" and "or".
+        :param node: _ast.BoolOp.
+        :return: None.
+        """
+        assert type(node.op) in [_ast.And, _ast.Or]
         op = "and" if isinstance(node.op, _ast.And) else "or"
         logging.info(f"in visit_BoolOp, op={op}, number_of_values={len(node.values)}")
         for i, value in enumerate(node.values):
@@ -394,15 +443,26 @@ class Rewrite(ast.NodeVisitor):
                 self.print(f" {op} ")
 
     def visit_List(self, node):
+        """
+        Implements Lists.
+        :param node: _ast.List.
+        :return: None
+        """
         logging.info(f"in visit_List")
         self.print("[")
         self.print(node.elts, _is_iterable=True, _use_visit=True)
         self.print("]")
 
     def visit_Dict(self, node):
+        """
+        Implements Dictionaries.
+        :param node: _ast.Dict.
+        :return: None
+        """
         logging.info(f"in visit_Dict")
         self.print("{")
         self.new_line()
+        # TODO small dictionaries should not use multiple lines.
         with self:
             for key, value in zip(node.keys, node.values):
                 self.visit(key, new_line=False)
@@ -413,16 +473,31 @@ class Rewrite(ast.NodeVisitor):
         self.print("}")
 
     def visit_Tuple(self, node):
+        """
+        Implements Tuples.
+        :param node: _ast.Tuple.
+        :return: None
+        """
         logging.info(f"in visit_Tuple")
         self.print("(")
         self.print(node.elts, _is_iterable=True, _use_visit=True)
         self.print(")")
 
     def visit_Pass(self, node):
+        """
+        Implements Pass.
+        :param node: _ast.Pass.
+        :return: None
+        """
         logging.info(f"in visit_Pass")
         self.print("pass")
 
     def visit_Return(self, node):
+        """
+        Implements Return
+        :param node: _ast.Return.
+        :return: None
+        """
         logging.info(f"in visit_Return")
         self.print("return")
         if node.value:
@@ -430,16 +505,32 @@ class Rewrite(ast.NodeVisitor):
             self.visit(node.value, new_line=False)
 
     def visit_Global(self, node):
+        """
+        Implements Global
+        :param node: _ast.Global.
+        :return: None
+        """
         logging.info(f"in visit_Global")
         self.print("global ")
         self.print(node.names, _is_iterable=True)
 
     def visit_Nonlocal(self, node):
+        """
+        Implements Nonlocal
+        :param node: _ast.Nonlocal.
+        :return: None
+        """
         logging.info(f"in visit_Nonlocal")
         self.print("nonlocal ")
         self.print(node.names, _is_iterable=True)
 
     def visit_NamedExpr(self, node):
+        """
+        Implements named expressions.
+        Note: Named expressions were introduced in Python 3.8.
+        :param node: _ast.NamedExpr.
+        :return: None
+        """
         logging.info(f"in visit_NamedExpr")
         self.print("(")
         self.visit(node.target, new_line=False)
@@ -448,6 +539,11 @@ class Rewrite(ast.NodeVisitor):
         self.print(")")
 
     def visit_Assign(self, node):
+        """
+        Implements assignments.
+        :param node: _ast.Assign.
+        :return: None
+        """
         logging.info(f"in visit_Assign")
         for target in node.targets:
             self.visit(target, False)
@@ -455,6 +551,11 @@ class Rewrite(ast.NodeVisitor):
         self.visit(node.value, False)
 
     def visit_Compare(self, node):
+        """
+        Implements comparisons.
+        :param node: _ast.Compare.
+        :return: None
+        """
         logging.info(f"in visit_Compare")
         ops = {
             _ast.Eq: "==",
@@ -470,6 +571,12 @@ class Rewrite(ast.NodeVisitor):
         }
         self.visit(node.left, new_line=False)
         self.print(" ")
+        # Note that node.ops contains the operators as instances of _ast.op_type,
+        # therefor, they must be casted to a string using the previously declared ops
+        # dictionary.
+        # Note that the node.comparators contains the all operands of the comparison
+        # except for the first left hand side operand, node.comparators could store
+        # multiple operands when using chained comparisons.
         for i, (op, comp) in enumerate(zip(node.ops, node.comparators)):
             self.print(f"{ops[type(op)]} ")
             self.visit(comp, new_line=False)
@@ -477,17 +584,33 @@ class Rewrite(ast.NodeVisitor):
                 self.print(" ")
 
     def visit_Subscript(self, node):
+        """
+        Implements Subscript.
+        :param node: _ast.Subscript.
+        :return: None
+        """
         logging.info(f"in visit_Subscript")
         self.visit(node.value, new_line=False)
         self.visit(node.slice, new_line=False)
 
     def visit_Index(self, node):
+        """
+        Implements Indexing.
+        :param node: _ast.Index.
+        :return: None
+        """
         logging.info(f"in visit_Index")
         self.print("[")
         self.visit(node.value, new_line=False)
         self.print("]")
 
     def visit_Slice(self, node):
+        """
+        Implements Slicing.
+        When slicing, there are three optional options [lower:upper:step].
+        :param node: _ast.Slice.
+        :return: None
+        """
         logging.info(f"in visit_Slice")
         self.print("[")
         if node.lower:
@@ -501,6 +624,11 @@ class Rewrite(ast.NodeVisitor):
         self.print("]")
 
     def visit_Assert(self, node):
+        """
+        Implements Assertions.
+        :param node: _ast.Assert.
+        :return: None
+        """
         logging.info(f"in visit_Assert")
         self.print("assert ")
         self.visit(node.test, new_line=False)
@@ -509,22 +637,39 @@ class Rewrite(ast.NodeVisitor):
             self.visit(node.msg, new_line=False)
 
     def visit_keyword(self, node):
+        """
+        Implements keyword arguments.
+        :param node: _ast.keyword.
+        :return: None
+        """
         logging.info(f"in visit_keyword")
         if node.arg:
             self.print(
                 f"{node.arg}" + (" = " if self.space_between_arguments else f"=")
             )
         else:
+            # Keyword argument containing all keyword arguments except for those
+            # corresponding to a formal parameter.
             self.print(f"**")
         self.visit(node.value, new_line=False)
 
     def visit_Attribute(self, node):
+        """
+        Implements Attributes.
+        :param node: _ast.Attribute.
+        :return: None
+        """
         logging.info(f"in visit_Attribute")
         self.visit(node.value, new_line=False)
         self.print(".")
         self.print(node.attr)
 
     def visit_Raise(self, node):
+        """
+        Implements Raise.
+        :param node: _ast.Raise.
+        :return: None
+        """
         logging.info(f"in visit_Raise")
         self.print("raise")
         if node.exc:
@@ -535,23 +680,39 @@ class Rewrite(ast.NodeVisitor):
             self.visit(node.cause, new_line=False)
 
     def visit_Try(self, node):
+        """
+        Implements try, except, and finally.
+        :param node: _ast.Try.
+        :return: None
+        """
         logging.info(f"in visit_Try")
         self.print("try:", _new_line=True)
         with self:
+            # Try block
             self._visit_list(node.body)
         for handle in node.handlers:
+            # Except handlers
             self.visit(handle, new_line=False)
         if node.orelse:
+            # Handle else statements after except statements
             self.new_line()
             self.print("else:", _new_line=True)
             with self:
+                # Else block
                 self._visit_list(node.orelse)
         if node.finalbody:
+            # Handle finally.
             self.print("finally:", _new_line=True)
             with self:
+                # Finally block.
                 self._visit_list(node.finalbody, _new_line_at_finish=False)
 
     def visit_ExceptHandler(self, node):
+        """
+        Implements except handler.
+        :param node: _ast.ExceptHandler node.
+        :return: None
+        """
         logging.info(f"in visit_ExceptHandler")
         self.print("except")
         if node.type:
@@ -564,17 +725,32 @@ class Rewrite(ast.NodeVisitor):
             self._visit_list(node.body, _new_line_at_finish=False)
 
     def visit_Starred(self, node):
+        """
+        Implements starred nodes.
+        :param node: _ast.Starred node.
+        :return: None
+        """
         logging.info(f"in visit_Starred")
         self.print("*")
         self.visit(node.value, new_line=False)
 
     def visit_arguments(self, node):
+        """
+        Handles function/class arguments.
+        :param node: _ast.arguments node.
+        :return: None
+        """
         logging.info(f"in visit_arguments")
+        # Get all the positional arguments ordered.
         ordered_only_pos, ordered_args = Rewrite._ordered_pos_arg_default(
             node.posonlyargs, node.args, node.defaults
         )
+        # When the line length of the arguments exceeds the maximum line length spaces
+        # after the commas should not be printed, instead, move to
+        # a new line to print the next argument.
         comma = "," + (" " if not self.long_node else "")
         if self.long_node:
+            # Add indentation in case the node exceeds the maximum line length.
             self.__enter__()
             self.new_line()
         for i, (key, value) in enumerate(ordered_only_pos.items()):
@@ -633,6 +809,11 @@ class Rewrite(ast.NodeVisitor):
             self.__exit__(None, None, None)
 
     def visit_withitem(self, node):
+        """
+        Handles "with" items.
+        :param node: _ast.withitem.
+        :return: None
+        """
         logging.info(f"in visit_withitem")
         self.visit(node.context_expr, new_line=False)
         if node.optional_vars:
@@ -640,39 +821,57 @@ class Rewrite(ast.NodeVisitor):
             self.visit(node.optional_vars, new_line=False)
 
     def visit_With(self, node):
+        """
+        Implements "with" statement blocks.
+        :param node: _ast.With.
+        :return: None
+        """
         logging.info(f"in visit_With")
         self.print("with ")
         for i, element in enumerate(node.items):
+            # Visit with items.
             self.visit(element, new_line=False)
             if i + 1 != len(node.items):
                 self.print(", ")
         self.print(":", _new_line=True)
         with self:
+            # with block.
             for i, element in enumerate(node.body):
-                if i + 1 != len(node.body):
-                    self.visit(element)
-                else:
-                    self.visit(element, new_line=False)
+                self.visit(element, new_line=i + 1 != len(node.body))
 
     def visit_FunctionDef(self, node):
+        """
+        Handles function definitions.
+        :param node: _ast.FunctionDef node.
+        :return: None
+        """
         logging.info(f"in visit_FunctionDef")
+        # Handle function decorators.
         for decorator in node.decorator_list:
             self.print("@")
             self.visit(decorator)
         self.print(f"def {node.name}(")
+        # Handle function arguments.
         if node.args:
             self.visit(node.args, new_line=False)
+        # If the function definition exceeds the maximum line length, a new line should
+        # be dedicated for the closing parenthesis.
         if self.long_node:
             self.new_line()
         self.print("):", _new_line=True)
         if self.long_node:
             # Note that if the function continues, the body will be printed twice.
             return
+
+        # Append to last_body_node the last definition node in the class's body.
         self.last_body_node.append(self._get_latest_definition_node(node.body))
 
+        # Start new indentation in order to print the function's body.
         with self:
+            # Print docstring if exists.
             if ast.get_docstring(node):
                 self.visit_Constant(node.body[0].value, is_docstring=True)
+            # Handle the rest of the function's body.
             for i, element in enumerate(node.body):
                 if ast.get_docstring(node) and i == 0:
                     continue
@@ -680,15 +879,25 @@ class Rewrite(ast.NodeVisitor):
                 self.visit(element, new_line=i + 1 != len(node.body))
         if self.latest_class:
             return
+        # Since we're done printing the function, we can remove the last last_body_node
+        # element.
         self.last_body_node.pop()
+        # Handle new lines after the definition is over.
         self.print_new_lines_after_definition(node)
 
     def visit_ClassDef(self, node):
+        """
+        Handles class definition nodes.
+        :param node: _ast.ClassDef node.
+        :return: None
+        """
         logging.info(f"in visit_ClassDef")
+        # Handle decorators if they exist.
         for decorator in node.decorator_list:
             self.print("@")
             self.visit(decorator)
         self.print(f"class {node.name}")
+        # Handle node bases and keywords (e.g. baseclass or keyword like metaclass="").
         if node.bases or node.keywords:
             self.print("(")
         if node.bases:
@@ -706,6 +915,8 @@ class Rewrite(ast.NodeVisitor):
         if node.bases or node.keywords:
             self.print(")")
         self.print(":", _new_line=True)
+
+        # Append to last_body_node the last definition node in the class's body.
         self.last_body_node.append(self._get_latest_definition_node(node.body))
         with self:
             for i, element in enumerate(node.body):
@@ -717,20 +928,38 @@ class Rewrite(ast.NodeVisitor):
                 self.starting_new_line_node = element
                 self.visit(element, new_line=i + 1 != len(node.body))
                 self.latest_class = False
+        # Since we're done printing the class, we can remove the last last_body_node
+        # element.
         self.last_body_node.pop()
+        # Handle new lines after the definition is over.
         self.print_new_lines_after_definition(node)
 
     def visit_If(self, node):
+        """
+        Handles If statements.
+        :param node: _ast.If node.
+        :return: None.
+        """
         logging.info(f"in visit_If")
         self.print("if ")
         self._block_flow(node=node, first_attr="test", is_if=True)
 
     def visit_While(self, node):
+        """
+        Handles while statements.
+        :param node: _ast.While
+        :return: None
+        """
         logging.info(f"in visit_While")
         self.print("while ")
         self._block_flow(node=node, first_attr="test")
 
     def visit_For(self, node):
+        """
+        Handles for statements.
+        :param node: _ast.For node.
+        :return: None
+        """
         logging.info(f"in visit_For")
         self.print("for ")
         self.visit(node.target, new_line=False)
@@ -738,9 +967,16 @@ class Rewrite(ast.NodeVisitor):
         self._block_flow(node=node, first_attr="iter")
 
     def visit_Call(self, node):
+        """
+        Handles function calls.
+        :param node: _ast.Call node.
+        :return: None
+        """
         logging.info(f"in visit_Call")
+        # Visit the function identifier node.
         self.visit(node.func, new_line=False)
         self.print("(")
+        # Handle the function argument.
         for i, arg in enumerate(node.args):
             self.visit(arg, new_line=False)
             if i + 1 != len(node.args) or node.keywords:
@@ -752,15 +988,26 @@ class Rewrite(ast.NodeVisitor):
         self.print(")")
 
     def visit_ListComp(self, node):
+        """
+        Handles list comprehensions.
+        :param node: _ast.ListComp.
+        :return: None
+        """
         logging.info(f"in visit_ListComp")
         self.print("[")
         self.visit(node.elt, new_line=False)
         for generator in node.generators:
+            # Note that a list comprehension usage could contain multiple ifs.
             self.print(" for ")
             self.visit(generator, new_line=False)
         self.print("]")
 
     def visit_IfExp(self, node):
+        """
+        Handle if expressions that are not followed by a block, e.g. "a" if b else "c".
+        :param node: _ast.IfExp
+        :return: None
+        """
         logging.info(f"in visit_IfExp")
         self.visit(node.body, new_line=False)
         self.print(" if ")
@@ -769,32 +1016,52 @@ class Rewrite(ast.NodeVisitor):
         self.visit(node.orelse, new_line=False)
 
     def visit_comprehension(self, node):
+        """
+        Handle comprehensions.
+        :param node: _ast.comprehension node.
+        :return: None
+        """
         logging.info(f"in visit_comprehension")
         self.visit(node.target, new_line=False)
         self.print(" in ")
         self.visit(node.iter, new_line=False)
         if node.ifs:
+            # Handle "if" statement if node contains ifs.
             for if_liner in node.ifs:
                 self.print(" if ")
                 self.visit(if_liner, new_line=False)
 
     def _block_flow(self, node, first_attr, is_if=False):
+        """
+        Helper function to handle If/While/For blocks.
+        :param node: One of _ast.If, _ast.While, _ast.For node.
+        :param first_attr: the first attributes name, "iter" if the node is an _ast.For
+                            node, else "test".
+        :param is_if: True if node is _ast.if node.
+        :return: None
+        """
+        # Get the node of the first attribute.
         node_attr = getattr(node, first_attr)
         self.visit(node_attr, new_line=False)
         self.print(":", _new_line=True)
+        # Open new indentation.
         with self:
+            # Visit all the the nodes body block.
             for i, element in enumerate(node.body):
                 if i + 1 != len(node.body):
                     self.visit(element)
                 else:
                     self.visit(element, False)
         if node.orelse:
+            # Handle else statement blocks if the node has an else block.
             self.new_line()
             if is_if and type(node.orelse[0]) is _ast.If:
                 self.print("el")
+                # Note that the statement should be an elif statement.
                 self.visit(node.orelse[0], False)
             else:
                 self.print("else:", _new_line=True)
+                # Handle the else block
                 with self:
                     for i, element in enumerate(node.orelse):
                         if i + 1 != len(node.orelse):
@@ -803,11 +1070,34 @@ class Rewrite(ast.NodeVisitor):
                             self.visit(element, False)
 
     def _visit_list(self, nodes_list, *, _new_line_at_finish=True):
+        """
+        Calls visit() for each node in a list.
+        When calling visit(), new_line argument will be always True except for the
+        last node unless specified otherwise.
+        :param nodes_list: List of nodes
+        :param _new_line_at_finish: Should new line be printed when visiting the last
+                                    node.
+        :return: None
+        """
         for i, node in enumerate(nodes_list):
             self.visit(node, new_line=i + 1 != len(nodes_list) or _new_line_at_finish)
 
     @staticmethod
     def _ordered_pos_arg_default(pos_only_args, args, defaults):
+        """
+        Orders the positional arguments (both positional only arguments and positional
+        arguments in two ordered dictionaries, the dictionary's key is the arguments
+        name and the value is the default value, in case the argument does not have a
+        default value, the value will be empty.
+        :param pos_only_args: positional only arguments
+        :param args: positional arguments
+        :param defaults: list containing default values for all positional arguments
+        :return: Two ordered dictionaries containing the arguments and their default
+                 value if existed.
+        """
+        # the arguments with default values that are stored in defaults are duplicated,
+        # positional only arguments and positional arguments with default values are
+        # stored in 'defaults' and one of ('pos_only_args', 'args).
         assert len(pos_only_args) + len(args) >= len(defaults), (
             len(pos_only_args),
             len(args),
@@ -818,27 +1108,42 @@ class Rewrite(ast.NodeVisitor):
         ordered_only_pos = OrderedDict()
         ordered_args = OrderedDict()
         pos_defaults = 0
+        # Iterate over the positional only arguments since they must be written first.
         for i, pos_only_arg in enumerate(pos_only_args):
+            # The last len(default) arguments have a default value.
             if i >= total_args_size - default_size:
                 ordered_only_pos[pos_only_arg.arg] = [
                     defaults[i - total_args_size + default_size]
                 ]
                 pos_defaults += 1
             else:
+                # Arguments does not have a default value
                 ordered_only_pos[pos_only_arg.arg] = []
         if pos_defaults:
+            # If there is at least on positional only argument that have a default
+            # value, then all of the "regular" positional arguments have default
+            # values.
             for i, arg in enumerate(args):
                 ordered_args[arg.arg] = [defaults[i + pos_defaults]]
-        else:  # No default argument has been used yet.
+        else:
+            # No default argument has been used yet.
             total_defaults = len(args) - len(defaults)
             for i, arg in enumerate(args):
+                # The last len(default) arguments have a default value.
                 if i >= total_defaults:
                     ordered_args[arg.arg] = [defaults[i - total_defaults]]
                 else:
+                    # The argument does not have a default value.
                     ordered_args[arg.arg] = []
         return ordered_only_pos, ordered_args
 
     def change_indentation(self, value):
+        """
+        Changes the current indentation
+        :param value: Value of the indentation, must be multiple of 4
+        :return: None
+        """
+        assert not value % 4, "Indentation error"
         self.indentation += value
 
     def _init_values_for_long_line(self):
@@ -867,6 +1172,12 @@ class Rewrite(ast.NodeVisitor):
         return None, None
 
     def print_new_lines_after_definition(self, node):
+        """
+        A helper function to decide how many lines are printed after function/class
+        definition.
+        :param node: definition node.
+        :return: None
+        """
         if not (
             self.last_node
             or (
@@ -926,6 +1237,12 @@ def reformat(visitor):
 
 
 def rewrite(*argv):
+    """
+    Handles the rewriting process by parsing the arguments and configurations, gathers
+    the path of the files that need to be formatted and rewrites them.
+    :param argv: The command line arguments provided by the user
+    :return: 0 if the code is formatted, 1 otherwise
+    """
     visitor = Rewrite()
     configurations = _conf.Conf()
     # Set the configurations according to the configuration file
