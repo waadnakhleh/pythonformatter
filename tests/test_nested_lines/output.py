@@ -24,3 +24,7 @@ foo()
 def foo():
     def bar():
         pass
+
+
+def new_bar():
+    pass

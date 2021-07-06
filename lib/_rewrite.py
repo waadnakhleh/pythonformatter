@@ -234,6 +234,7 @@ class Rewrite(ast.NodeVisitor):
             self.long_node = False
 
     def new_line(self, num=1):
+        logging.debug(f"printing {num} new line")
         [self.print("", _new_line=True) for _ in range(num)]
 
     def visit_Module(self, node):
@@ -680,18 +681,7 @@ class Rewrite(ast.NodeVisitor):
         if self.latest_class:
             return
         self.last_body_node.pop()
-        if (not self.last_node) or (
-            self.nested_scope
-            and (node != self.last_body_node[-1][0] or not self.last_body_node[-1][1])
-        ):
-            # After each function new empty lines should be printed, unless the node is
-            # the last node (which applies to both module-level scope and nested
-            # functions.
-            self.new_line(
-                self.nested_lines
-                if self.nested_scope
-                else self.vertical_definition_lines
-            )
+        self.print_new_lines_after_definition(node)
 
     def visit_ClassDef(self, node):
         logging.info(f"in visit_ClassDef")
@@ -716,6 +706,7 @@ class Rewrite(ast.NodeVisitor):
         if node.bases or node.keywords:
             self.print(")")
         self.print(":", _new_line=True)
+        self.last_body_node.append(self._get_latest_definition_node(node.body))
         with self:
             for i, element in enumerate(node.body):
                 if ast.get_docstring(node) and i == 0:
@@ -726,12 +717,8 @@ class Rewrite(ast.NodeVisitor):
                 self.starting_new_line_node = element
                 self.visit(element, new_line=i + 1 != len(node.body))
                 self.latest_class = False
-        if not self.last_node:
-            self.new_line(
-                self.nested_lines
-                if self.nested_scope
-                else self.vertical_definition_lines
-            )
+        self.last_body_node.pop()
+        self.print_new_lines_after_definition(node)
 
     def visit_If(self, node):
         logging.info(f"in visit_If")
@@ -878,6 +865,20 @@ class Rewrite(ast.NodeVisitor):
             if isinstance(node, (_ast.ClassDef, _ast.FunctionDef)):
                 return node, i == 0
         return None, None
+
+    def print_new_lines_after_definition(self, node):
+        if not (
+            self.last_node
+            or (
+                self.nested_scope
+                and (node == self.last_body_node[-1][0] and self.last_body_node[-1][1])
+            )
+        ):
+            self.new_line(
+                self.nested_lines
+                if self.nested_scope
+                else self.vertical_definition_lines
+            )
 
 
 def reformat(visitor):
