@@ -20,7 +20,9 @@ class Conf:
         if conf_dict.get("MAX_LINE"):
             visitor.max_line = int(conf_dict["MAX_LINE"])
         if conf_dict.get("VERTICAL_DEFINITION_LINES"):
-            visitor.vertical_definition_lines = int(conf_dict["VERTICAL_DEFINITION_LINES"])
+            visitor.vertical_definition_lines = int(
+                conf_dict["VERTICAL_DEFINITION_LINES"]
+            )
         if conf_dict.get("NESTED_LINES"):
             visitor.nested_lines = int(conf_dict["NESTED_LINES"])
         if str(conf_dict.get("DIRECT_FILE")) == "TRUE":
@@ -101,22 +103,13 @@ def print_help():
     }
 
     options = {
-        (
-            "-c",
-            "--check-only"
-        ): "Use this option to check if your code is formatted",
+        ("-c", "--check-only"): "Use this option to check if your code is formatted",
         (
             "-cfg",
-            "--configuration <configuration file>"
+            "--configuration <configuration file>",
         ): "Use this option to provide a configuration file",
-        (
-            "-h",
-            "--help"
-        ): "Display the help message",
-        (
-            "-ml",
-            "--max-line <max_line>"
-        ): "Specify the maximum line length",
+        ("-h", "--help"): "Display the help message",
+        ("-ml", "--max-line <max_line>"): "Specify the maximum line length",
         (
             "-mi",
             "--multiple-imports",
