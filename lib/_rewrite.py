@@ -1146,6 +1146,22 @@ class Rewrite(ast.NodeVisitor):
         assert not value % 4, "Indentation error"
         self.indentation += value
 
+    def cleanup(self):
+        """
+        Resets all the necessary variables in order to start reformatting again.
+        :return: None
+        """
+        self.current_line_len = 0
+        self.current_line = ""
+        self.first_long_node = False
+        self.indentation = 0
+        self.in_new_line = True
+        self.last_body_node = []
+        self.last_node = False
+        self.latest_class = False
+        self.long_node = False
+        self.nested_scope = 0
+
     def _init_values_for_long_line(self):
         """
         Helper function to initialize all the needed variables in case of a long line.
@@ -1229,6 +1245,8 @@ def reformat(visitor):
             copyfile(modified_file, target_file)
             # Remove the external file.
             os.remove(modified_file)
+        # Reset all the object's attributes to their default value.
+        visitor.cleanup()
     return 0
 
 
