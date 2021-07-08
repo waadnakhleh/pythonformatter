@@ -974,18 +974,30 @@ class Rewrite(ast.NodeVisitor):
         """
         logging.info(f"in visit_Call")
         # Visit the function identifier node.
+        comma = ","
+        comma += "" if self.long_node else " "
         self.visit(node.func, new_line=False)
         self.print("(")
         # Handle the function argument.
+        if self.long_node:
+            # Start a new line.
+            self.new_line()
+            # Open new scope.
+            self.__enter__()
         for i, arg in enumerate(node.args):
             self.visit(arg, new_line=False)
             if i + 1 != len(node.args) or node.keywords:
-                self.print(", ")
+                self.print(comma, _new_line=self.long_node)
         for i, kwarg in enumerate(node.keywords):
             self.visit(kwarg, new_line=False)
             if i + 1 != len(node.keywords):
-                self.print(", ")
-        self.print(")")
+                self.print(comma, _new_line=self.long_node)
+        if self.long_node:
+            # The closing parentheses must be on an independent line.
+            self.new_line()
+            # Close scope.
+            self.__exit__(None, None, None)
+        self.print(")", _new_line=self.long_node)
 
     def visit_ListComp(self, node):
         """

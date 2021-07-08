@@ -9,3 +9,8 @@ else:
     print(
         "a doesn't have __len__ attribute"
     )
+
+
+def bar(first_argument, this_is_the_second_argument, this_is_the_third_argument):
+    pass
+bar("Here is the first argument", this_is_the_second_argument="This is the second argument", this_is_the_third_argument="enough")
