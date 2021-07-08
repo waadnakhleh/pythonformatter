@@ -1199,19 +1199,13 @@ def reformat(visitor):
     :return: 0 if no changes are needed, 1 otherwise.
     """
     global file
+    modified_file = "modified_file.py"
     for target_file in visitor.files:
         with open(target_file) as f:
             # Parse the python files and extract the AST.
             parsed = ast.parse(f.read(), target_file)
-        if visitor.directory is not None:
-            # When using a directory, reformat the original file.
-            file = open(target_file, "+r")
-        else:
-            # When using direct file, dump the newly reformatted code in
-            # temporary file
-            # TODO Change this behaviour before release
-            reformatted_file = "modified_file.py"
-            file = open(reformatted_file, "a")
+        # Write the changes to an external file.
+        file = open(modified_file, "w+")
         try:
             # Rewrite the code by using the AST.
             visitor.visit(parsed)
@@ -1228,11 +1222,13 @@ def reformat(visitor):
 
         file.close()
         if visitor.check_only:
-            exit(not filecmp.cmp(target_file, "modified_file.py"))
-        # Delete the file in case we're in pytest environment
-        elif "PYTEST_CURRENT_TEST" not in os.environ:
-            copyfile(reformatted_file, target_file)
-            os.remove(reformatted_file)
+            # Compare the external file with the original file.
+            exit(not filecmp.cmp(target_file, modified_file))
+        if "PYTEST_CURRENT_TEST" not in os.environ:
+            # Move the external file's content to the original file
+            copyfile(modified_file, target_file)
+            # Remove the external file.
+            os.remove(modified_file)
     return 0
 
 
