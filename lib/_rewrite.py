@@ -138,7 +138,34 @@ class Rewrite(ast.NodeVisitor):
         """Called if no explicit visitor function exists for a node."""
         logging.info(f"in generic_visit(), node={type(node).__name__}")
         for field, value in ast.iter_fields(node):
-            self.visit(value, False)
+            if isinstance(value, _ast.AST):
+                self.visit(value, False)
+            elif isinstance(value, list):
+                for item in value:
+                    if isinstance(item, _ast.AST):
+                        self.visit(item, False)
+
+    def visit_Expr(self, node):
+        """
+        Handles Expressions.
+        When an expression, such as function call appears as a statement by itself, meaning
+        that its return value is not stored or used, it is wrapped in an expression node.
+        The main purpose of this function is to handle the nodes that exceeds the
+        maximum line length
+        :param node: _ast.Expr Node
+        :return: None
+        """
+        for field, value in ast.iter_fields(node):
+            if isinstance(value, _ast.AST):
+                value.exceeds_maximum_length = node.exceeds_maximum_length
+                self.visit(value, False)
+                value.exceeds_maximum_length = False
+            elif isinstance(value, list):
+                for item in value:
+                    if isinstance(item, _ast.AST):
+                        value.exceeds_maximum_length = node.exceeds_maximum_length
+                        self.visit(item, False)
+                        value.exceeds_maximum_length = False
 
     def _prepare_line(self, value, _new_line, _is_iterable, _special_attribute):
         """
@@ -234,6 +261,7 @@ class Rewrite(ast.NodeVisitor):
             logging.warning("Line exceeded limit")
             self._init_values_for_long_line()
             self.visit(self.starting_new_line_node, new_line=False)
+            self.starting_new_line_node.exceeds_maximum_length = False
             self.long_node = False
 
     def new_line(self, num=1):
@@ -975,11 +1003,11 @@ class Rewrite(ast.NodeVisitor):
         logging.info(f"in visit_Call")
         # Visit the function identifier node.
         comma = ","
-        comma += "" if self.long_node else " "
+        comma += "" if node.exceeds_maximum_length else " "
         self.visit(node.func, new_line=False)
         self.print("(")
         # Handle the function argument.
-        if self.long_node:
+        if node.exceeds_maximum_length:
             # Start a new line.
             self.new_line()
             # Open new scope.
@@ -987,17 +1015,17 @@ class Rewrite(ast.NodeVisitor):
         for i, arg in enumerate(node.args):
             self.visit(arg, new_line=False)
             if i + 1 != len(node.args) or node.keywords:
-                self.print(comma, _new_line=self.long_node)
+                self.print(comma, _new_line=node.exceeds_maximum_length)
         for i, kwarg in enumerate(node.keywords):
             self.visit(kwarg, new_line=False)
             if i + 1 != len(node.keywords):
-                self.print(comma, _new_line=self.long_node)
-        if self.long_node:
+                self.print(comma, _new_line=node.exceeds_maximum_length)
+        if node.exceeds_maximum_length:
             # The closing parentheses must be on an independent line.
             self.new_line()
             # Close scope.
             self.__exit__(None, None, None)
-        self.print(")", _new_line=self.long_node)
+        self.print(")", _new_line=node.exceeds_maximum_length)
 
     def visit_ListComp(self, node):
         """
@@ -1179,6 +1207,7 @@ class Rewrite(ast.NodeVisitor):
         Helper function to initialize all the needed variables in case of a long line.
         :return:
         """
+        self.starting_new_line_node.exceeds_maximum_length = True
         self.current_line_len = 0
         self.current_line = ""
         self.in_new_line = True
@@ -1220,6 +1249,15 @@ class Rewrite(ast.NodeVisitor):
             )
 
 
+class NodeAttributes(ast.NodeVisitor):
+    def visit(self, node):
+        """Visit a node."""
+        setattr(node, "exceeds_maximum_length", False)
+        method = "visit_" + node.__class__.__name__
+        visitor = getattr(self, method, self.generic_visit)
+        return visitor(node)
+
+
 def reformat(visitor):
     """
     Rewrites all the given files.
@@ -1227,11 +1265,16 @@ def reformat(visitor):
     :return: 0 if no changes are needed, 1 otherwise.
     """
     global file
+    attribute_setter = NodeAttributes()
     modified_file = "modified_file.py"
     for target_file in visitor.files:
         with open(target_file) as f:
             # Parse the python files and extract the AST.
             parsed = ast.parse(f.read(), target_file)
+
+        # Add necessary attributes to the AST nodes.
+        attribute_setter.visit(parsed)
+
         # Write the changes to an external file.
         file = open(modified_file, "w+")
         try:
@@ -1241,17 +1284,22 @@ def reformat(visitor):
         # these files is not possible.
         except SyntaxError as e:
             raise e
+        # Recursion Error usually happens when the system fails to format the file.
+        # An example of this would be a maximum line length that exceeds an
+        # identifier's name.
         except RecursionError:
             message = (
                 "maximum recursion depth exceeded while calling a Python object"
                 ", check maximum line length"
             )
             raise NoSolutionError(message)
-
+        # Finish writing to the file
         file.close()
         if visitor.check_only:
             # Compare the external file with the original file.
             exit(not filecmp.cmp(target_file, modified_file))
+        # When in pytest environment, the system should not change the original files
+        # content.
         if "PYTEST_CURRENT_TEST" not in os.environ:
             # Move the external file's content to the original file
             copyfile(modified_file, target_file)
