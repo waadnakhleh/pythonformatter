@@ -481,6 +481,17 @@ class Rewrite(ast.NodeVisitor):
         self.print(node.elts, _is_iterable=True, _use_visit=True)
         self.print("]")
 
+    def visit_Set(self, node):
+        """
+        Implements Sets.
+        :param node: _ast.Set.
+        :return: None
+        """
+        logging.info(f"in visit_Set")
+        self.print("{")
+        self.print(node.elts, _is_iterable=True, _use_visit=True)
+        self.print("}")
+
     def visit_Dict(self, node):
         """
         Implements Dictionaries.

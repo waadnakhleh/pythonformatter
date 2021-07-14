@@ -26,3 +26,4 @@ foo()()
 foobar()
 a =Ages(2)
 b = Ages()
+c = {1,2,3}
