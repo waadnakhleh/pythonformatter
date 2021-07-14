@@ -776,8 +776,8 @@ class Rewrite(ast.NodeVisitor):
         # When the line length of the arguments exceeds the maximum line length spaces
         # after the commas should not be printed, instead, move to
         # a new line to print the next argument.
-        comma = "," + (" " if not self.long_node else "")
-        if self.long_node:
+        comma = "," + (" " if not node.exceeds_maximum_length else "")
+        if node.exceeds_maximum_length:
             # Add indentation in case the node exceeds the maximum line length.
             self.__enter__()
             self.new_line()
@@ -787,14 +787,14 @@ class Rewrite(ast.NodeVisitor):
                 self.print(" = " if self.space_between_arguments else "=")
                 self.visit(value[0], new_line=False)
             if i + 1 != len(ordered_only_pos):
-                self.print(comma, _new_line=self.long_node)
+                self.print(comma, _new_line=node.exceeds_maximum_length)
             else:
-                self.print(comma, _new_line=self.long_node)
-                self.print("/", _new_line=self.long_node)
+                self.print(comma, _new_line=node.exceeds_maximum_length)
+                self.print("/", _new_line=node.exceeds_maximum_length)
         if ordered_only_pos and (
             ordered_args or node.vararg or node.kwonlyargs or node.kwarg
         ):
-            self.print(comma, _new_line=self.long_node)
+            self.print(comma, _new_line=node.exceeds_maximum_length)
         for i, (key, value) in enumerate(ordered_args.items()):
             self.print(key)
             if value:
@@ -806,7 +806,7 @@ class Rewrite(ast.NodeVisitor):
                 or node.kwonlyargs
                 or node.kwarg
             ):
-                self.print(comma, _new_line=self.long_node)
+                self.print(comma, _new_line=node.exceeds_maximum_length)
         if (ordered_args or ordered_only_pos) and (
             node.vararg or node.kwonlyargs or node.kwarg
         ):
@@ -817,9 +817,9 @@ class Rewrite(ast.NodeVisitor):
             self.print(f"{node.vararg.arg}")
         elif not (ordered_args or ordered_only_pos) and (node.kwonlyargs or node.kwarg):
             self.print("*")
-            self.print(comma, _new_line=self.long_node)
+            self.print(comma, _new_line=node.exceeds_maximum_length)
         if (ordered_args or ordered_only_pos) and (node.kwonlyargs or node.kwarg):
-            self.print(comma, _new_line=self.long_node)
+            self.print(comma, _new_line=node.exceeds_maximum_length)
         for i, item in enumerate(node.kwonlyargs):
             self.print(item.arg)
             if node.kw_defaults:
@@ -827,13 +827,13 @@ class Rewrite(ast.NodeVisitor):
                     self.print(" = " if self.space_between_arguments else "=")
                     self.visit(node.kw_defaults[i], new_line=False)
             if i + 1 != len(node.kwonlyargs):
-                self.print(comma, _new_line=self.long_node)
+                self.print(comma, _new_line=node.exceeds_maximum_length)
         if (
             ordered_args or ordered_only_pos or node.vararg or node.kwonlyargs
         ) and node.kwarg:
-            self.print(comma, _new_line=self.long_node)
+            self.print(comma, _new_line=node.exceeds_maximum_length)
             self.print(f"**{node.kwarg.arg}")
-        if self.long_node:
+        if node.exceeds_maximum_length:
             self.__exit__(None, None, None)
 
     def visit_withitem(self, node):
@@ -881,13 +881,14 @@ class Rewrite(ast.NodeVisitor):
         self.print(f"def {node.name}(")
         # Handle function arguments.
         if node.args:
+            node.args.exceeds_maximum_length = node.exceeds_maximum_length
             self.visit(node.args, new_line=False)
         # If the function definition exceeds the maximum line length, a new line should
         # be dedicated for the closing parenthesis.
-        if self.long_node:
+        if node.exceeds_maximum_length:
             self.new_line()
         self.print("):", _new_line=True)
-        if self.long_node:
+        if node.exceeds_maximum_length:
             # Note that if the function continues, the body will be printed twice.
             return
 
