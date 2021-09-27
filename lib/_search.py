@@ -11,6 +11,8 @@ def walk(root_directory: str, files_list: list, suffixes: list):
     :return: None
     """
     for path, subdirs, files in os.walk(root_directory):
+        if "formatter" in path:
+            continue
         for name in files:
             if (
                 any(name.endswith(suffix) for suffix in suffixes)
