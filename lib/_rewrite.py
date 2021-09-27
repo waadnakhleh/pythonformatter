@@ -1,3 +1,4 @@
+# Ignore file
 import ast
 import _ast
 import logging
@@ -1366,6 +1367,13 @@ def rewrite(*argv):
         )
     else:
         visitor.files = [visitor.target_file]
+
+    # Remove ignored files:
+    for file in visitor.files:
+        with open(file, "r") as f:
+            if "Ignore file" in f.readline():
+                visitor.files.remove(file)
+
     # Return the exit code this is useful for CI/CD procedure, and particularly when
     # using --check-only argument.
     return reformat(visitor)
