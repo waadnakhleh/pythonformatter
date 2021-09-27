@@ -1241,6 +1241,22 @@ class Rewrite(ast.NodeVisitor):
                 return node, i == 0
         return None, None
 
+    def print_error_messages(self, changed_files):
+        """
+        Prints error messages
+        :param changed_files: a list containing files that changed.
+        :return: None
+        """
+        was_were_must = "was" if len(changed_files) == 1 else "were"
+        if self.check_only:
+            was_were_must = "must be"
+        print(f"{len(changed_files)} file(s) {was_were_must} changed")
+        print(f"\nThe following file(s) {was_were_must} changed:")
+        for changed_file in changed_files:
+            print(changed_file)
+        if self.check_only:
+            exit(1)
+
     def print_new_lines_after_definition(self, node):
         """
         A helper function to decide how many lines are printed after function/class
@@ -1326,13 +1342,7 @@ def reformat(visitor):
         visitor.cleanup()
         # Print summary
     if changed_files:
-        was_or_were = "was" if len(changed_files) == 1 else "were"
-        print(f"{len(changed_files)} {was_or_were} changed")
-        print("\nThe following files were changed:")
-        for changed_file in changed_files:
-            print(changed_file)
-        if visitor.check_only:
-            exit(1)
+        visitor.print_error_messages(changed_files)
     else:
         print("No files were changed")
     return 0
