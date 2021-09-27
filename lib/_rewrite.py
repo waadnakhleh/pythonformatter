@@ -1308,15 +1308,15 @@ def reformat(visitor):
             raise NoSolutionError(message)
         # Finish writing to the file
         file.close()
+        # Check if file has changed
+        if not filecmp.cmp(modified_file, target_file):
+            # If the file has changed, add it to changed_files
+            changed_files.append(target_file)
         if visitor.check_only:
-            # Compare the external file with the original file.
-            exit(not filecmp.cmp(target_file, modified_file))
+            continue
         # When in pytest environment, the system should not change the original files
         # content.
         if "PYTEST_CURRENT_TEST" not in os.environ:
-            if not filecmp.cmp(modified_file, target_file):
-                # If the file has changed, add it to changed_files
-                changed_files.append(target_file)
             # Move the external file's content to the original file
             copyfile(modified_file, target_file)
             # Remove the external file.
@@ -1324,12 +1324,15 @@ def reformat(visitor):
         # Reset all the object's attributes to their default value.
         visitor.cleanup()
         # Print summary
-        if changed_files:
-            was_or_were = "was" if len(changed_files) == 1 else "were"
-            print(f"{len(changed_files)} {was_or_were} changed")
-            print("\nThe following files were changed:")
-            for changed_file in changed_files:
-                print(changed_file)
+    if changed_files:
+        was_or_were = "was" if len(changed_files) == 1 else "were"
+        print(f"{len(changed_files)} {was_or_were} changed")
+        print("\nThe following files were changed:")
+        for changed_file in changed_files:
+            print(changed_file)
+        if visitor.check_only:
+            exit(1)
+    else:
         print("No files were changed")
     return 0
 
