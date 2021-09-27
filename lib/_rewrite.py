@@ -1304,7 +1304,7 @@ def reformat(visitor):
         except RecursionError:
             message = (
                 "maximum recursion depth exceeded while calling a Python object"
-                ", check maximum line length"
+                ", check maximum line length: " + target_file
             )
             raise NoSolutionError(message)
         # Finish writing to the file
