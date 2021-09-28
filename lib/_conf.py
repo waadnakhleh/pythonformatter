@@ -82,6 +82,9 @@ class Conf:
             elif argv[i] in ["-nl", "--nested-lines"]:
                 visitor.nested_lines = int(argv[i + 1])
                 i += 1
+            elif argv[i] in ["-s", "--sufix"]:
+                visitor.allowed_suffixes.append(argv[i + 1])
+                i += 1
             elif argv[i] in ["-vdl", "--vertical-definition-lines"]:
                 visitor.vertical_definition_lines = int(argv[i + 1])
                 i += 1
@@ -136,6 +139,10 @@ def print_help():
             "-sba",
             "--space-between-arguments",
         ): "Use spaces between arguments with default values",
+        (
+            "-s",
+            "--suffix"
+        ): "Add a non-Python suffix to reformat (Python syntax)",
         (
             "-vdl",
             "--vertical-definition-lines <number>",
