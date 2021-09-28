@@ -87,7 +87,7 @@ class Conf:
                 i += 1
             elif argv[i] in ["-c", "--check-only"]:
                 visitor.check_only = True
-            elif argv[i] in ["--space-between-arguments"]:
+            elif argv[i] in ["-sba", "--space-between-arguments"]:
                 visitor.space_between_arguments = True
             elif argv[i] in ["-mi", "--multiple-imports"]:
                 visitor.multiple_imports = True
@@ -133,7 +133,7 @@ def print_help():
             "--nested-lines <lines>",
         ): "Specify number of empty lines between nested definitions",
         (
-            "",
+            "-sba",
             "--space-between-arguments",
         ): "Use spaces between arguments with default values",
         (
